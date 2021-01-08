@@ -1,6 +1,6 @@
 # QuickDownload
 
-QuickDAO是一个http协议文件下载工具.
+QuickDownload是一个http协议文件下载工具.
 
 # 快速入门
 
