@@ -2,6 +2,8 @@
 
 QuickDownload是一个http协议文件下载工具.
 
+> 最新版本v1.0.1 更新日期:2020-01-08
+
 # 快速入门
 
 ## 引入QuickDownload
@@ -10,7 +12,7 @@ QuickDownload是一个http协议文件下载工具.
 <dependency>
   <groupId>cn.schoolwow</groupId>
   <artifactId>QuickDownload</artifactId>
-  <version>1.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
