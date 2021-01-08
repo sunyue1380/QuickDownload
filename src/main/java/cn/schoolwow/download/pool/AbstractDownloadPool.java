@@ -36,44 +36,45 @@ public class AbstractDownloadPool implements DownloadPool{
     public List<DownloadProgress> getProgressList() {
         Iterator<DownloadHolder> iterator = downloadHolderList.iterator();
         List<DownloadProgress> downloadProgressList = new ArrayList<>(downloadHolderList.size());
+        int no = 1;
         while(iterator.hasNext()){
             DownloadProgress downloadProgress = iterator.next().downloadProgress;
             //如果间隔时间小于1s,直接返回
             long intervalTimes = System.currentTimeMillis()-downloadProgress.lastTime;
-            if(intervalTimes<1000){
-                continue;
-            }
-            long currentFileSize = 0;
-            int successDownloadCount = 0;
-            for (Path subFile : downloadProgress.subFileList) {
-                if (null != subFile && Files.exists(subFile)) {
-                    try {
-                        currentFileSize += Files.size(subFile);
-                    } catch (IOException e) {
-                        logger.warn("[统计文件大小失败]{}", e.getMessage());
+            if(intervalTimes>=1000&&"下载中".equals(downloadProgress.state)){
+                long currentFileSize = 0;
+                int successDownloadCount = 0;
+                for (Path subFile : downloadProgress.subFileList) {
+                    if (null != subFile && Files.exists(subFile)) {
+                        try {
+                            currentFileSize += Files.size(subFile);
+                        } catch (IOException e) {
+                            logger.warn("[统计文件大小失败]{}", e.getMessage());
+                        }
+                        successDownloadCount++;
                     }
-                    successDownloadCount++;
                 }
+                downloadProgress.currentFileSize = currentFileSize;
+                if(downloadProgress.m3u8){
+                    downloadProgress.currentFileSizeFormat = successDownloadCount+"("+String.format("%.2fMB",downloadProgress.currentFileSize/1.0/1024/1024)+")";
+                }else{
+                    downloadProgress.currentFileSizeFormat = String.format("%.2fMB",downloadProgress.currentFileSize/1.0/1024/1024);
+                }
+                downloadProgress.downloadSpeed = (downloadProgress.currentFileSize - downloadProgress.lastDownloadedFileSize)/(intervalTimes/1000);
+                if(downloadProgress.downloadSpeed<1024*1024){
+                    downloadProgress.downloadSpeedFormat = String.format("%.2fKB/s",downloadProgress.downloadSpeed/1.0/1024);
+                }else{
+                    downloadProgress.downloadSpeedFormat = String.format("%.2fMB/s",downloadProgress.downloadSpeed/1.0/1024/1024);
+                }
+                if(downloadProgress.m3u8&&downloadProgress.subFileList.length>0){
+                    downloadProgress.percent = successDownloadCount*100/downloadProgress.subFileList.length;
+                }else if(downloadProgress.totalFileSize>0){
+                    downloadProgress.percent = (int) (downloadProgress.currentFileSize*100/downloadProgress.totalFileSize);
+                }
+                downloadProgress.lastTime = System.currentTimeMillis();
+                downloadProgress.lastDownloadedFileSize = downloadProgress.currentFileSize;
             }
-            downloadProgress.currentFileSize = currentFileSize;
-            if(downloadProgress.m3u8){
-                downloadProgress.currentFileSizeFormat = successDownloadCount+"("+String.format("%.2fMB",downloadProgress.currentFileSize/1.0/1024/1024)+")";
-            }else{
-                downloadProgress.currentFileSizeFormat = String.format("%.2fMB",downloadProgress.currentFileSize/1.0/1024/1024);
-            }
-            downloadProgress.downloadSpeed = (downloadProgress.currentFileSize - downloadProgress.lastDownloadedFileSize)/(intervalTimes/1000);
-            if(downloadProgress.downloadSpeed<1024*1024){
-                downloadProgress.downloadSpeedFormat = String.format("%.2fKB/s",downloadProgress.downloadSpeed/1.0/1024);
-            }else{
-                downloadProgress.downloadSpeedFormat = String.format("%.2fMB/s",downloadProgress.downloadSpeed/1.0/1024/1024);
-            }
-            if(downloadProgress.m3u8&&downloadProgress.subFileList.length>0){
-                downloadProgress.percent = successDownloadCount*100/downloadProgress.subFileList.length;
-            }else if(downloadProgress.totalFileSize>0){
-                downloadProgress.percent = (int) (downloadProgress.currentFileSize*100/downloadProgress.totalFileSize);
-            }
-            downloadProgress.lastTime = System.currentTimeMillis();
-            downloadProgress.lastDownloadedFileSize = downloadProgress.currentFileSize;
+            downloadProgress.no = no++;
             downloadProgressList.add(downloadProgress);
         }
         return downloadProgressList;
@@ -84,7 +85,8 @@ public class AbstractDownloadPool implements DownloadPool{
         List<DownloadProgress> downloadProgressList = getProgressList();
         for(DownloadProgress downloadProgress:downloadProgressList){
             System.out.println(String.format(
-                    "|%-5s|%-15s|%-5s/%-5s|%02d%%|%-4s",
+                    "|%-3d|%-5s|%-15s|%-5s/%-5s|%02d%%|%-4s",
+                    downloadProgress.no,
                     downloadProgress.state,
                     downloadProgress.filePath,
                     downloadProgress.currentFileSizeFormat,
@@ -132,42 +134,45 @@ public class AbstractDownloadPool implements DownloadPool{
                 logger.warn("[下载任务已经存在]路径:{}",downloadHolder.file);
                 return;
             }
-            //下载前事件监听
-            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file);
-            }
-            for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
-                downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file);
-            }
-            //判断文件是否下载完成
             try {
+                //判断文件是否下载完成
                 if(isFileDownloadedAlready(downloadHolder)){
                     logger.info("[文件已经下载完毕]大小:{},文件路径:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024),downloadHolder.file);
                     return;
                 }
+                //下载前事件监听
+                for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
+                    downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file);
+                }
+                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                    downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file);
+                }
+                //开始正式下载
+                int retryTimes = 1;
+                while(retryTimes<=downloadPoolConfig.retryTimes&&!startDownload(downloadHolder)){
+                    logger.warn("[下载失败]重试{}/{}次,路径:{}",retryTimes,downloadHolder.downloadPoolConfig.retryTimes,downloadHolder.file);
+                    retryTimes++;
+                }
+                if(retryTimes>=downloadPoolConfig.retryTimes||Files.notExists(downloadHolder.file)){
+                    logger.warn("[下载失败]路径:{}",downloadHolder.file);
+                }else{
+                    logger.info("[文件下载完成]大小:{},路径:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024),downloadHolder.file);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
-                return;
+            } finally {
+                //下载完成事件监听
+                for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
+                    downloadTaskListener.downloadFinished(downloadHolder.response,downloadHolder.file);
+                }
+                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                    downloadPoolListener.downloadFinished(downloadHolder.response,downloadHolder.file);
+                }
+                //从下载进度表移除
+                downloadHolderListLock.lock();
+                downloadHolderList.remove(downloadHolder);
+                downloadHolderListLock.unlock();
             }
-            //开始正式下载
-            int retryTimes = downloadHolder.downloadPoolConfig.retryTimes;
-            while(retryTimes>=0&&!startDownload(downloadHolder)){
-                retryTimes--;
-            }
-            //从下载进度表移除
-            downloadHolderListLock.lock();
-            downloadHolderList.remove(downloadHolder);
-            downloadHolderListLock.unlock();
-
-            //下载完成事件监听
-            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                downloadTaskListener.downloadFinished(downloadHolder.response,downloadHolder.file);
-            }
-            for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
-                downloadPoolListener.downloadFinished(downloadHolder.response,downloadHolder.file);
-            }
-            downloadHolder.downloadProgress.state = "下载完成";
-            logger.info("[文件下载完成]大小:{},路径:{}",downloadHolder.downloadProgress.totalFileSizeFormat,downloadHolder.file);
         });
         downloadPoolConfig.threadPoolExecutor.execute(downloadHolder.downloadThread);
     }
@@ -188,7 +193,11 @@ public class AbstractDownloadPool implements DownloadPool{
                 e.printStackTrace();
             }
             downloadHolder.downloadProgress.totalFileSize = downloadHolder.response.contentLength();
-            downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%.2fMB",downloadHolder.response.contentLength()/1.0/1024/1024);
+            if(downloadHolder.downloadProgress.totalFileSize==-1){
+                downloadHolder.downloadProgress.totalFileSizeFormat = "大小未知";
+            }else{
+                downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%.2fMB",downloadHolder.response.contentLength()/1.0/1024/1024);
+            }
             downloadHolder.downloadProgress.startTime = System.currentTimeMillis();
         }
         //判断下载类型
@@ -205,12 +214,13 @@ public class AbstractDownloadPool implements DownloadPool{
                 downloadHolder.downloadTask.m3u8 = true;
                 downloadHolder.downloadProgress.m3u8 = true;
                 DownloaderEnum.M3u8.download(downloadHolder);
-            }else if(downloadHolder.downloadTask.singleThread||downloadHolder.downloadPoolConfig.singleThread){
+            }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.downloadPoolConfig.singleThread){
                 DownloaderEnum.SingleThread.download(downloadHolder);
             }else{
                 DownloaderEnum.MultiThread.download(downloadHolder);
             }
             if(isFileIntegrityPass(downloadHolder)){
+                downloadHolder.downloadProgress.state = "下载完成";
                 if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.downloadPoolConfig.deleteTemporaryFile){
                     for(Path subFile:downloadHolder.downloadProgress.subFileList){
                         Files.deleteIfExists(subFile);
@@ -231,6 +241,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
                     downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
                 }
+                downloadHolder.downloadProgress.state = "下载失败";
                 return false;
             }
         }catch (Exception exception){
@@ -251,11 +262,15 @@ public class AbstractDownloadPool implements DownloadPool{
      * @return 文件完整性校验结果
      * */
     private boolean isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
-        if(!downloadHolder.downloadTask.m3u8&&downloadHolder.response.contentLength()!=Files.size(downloadHolder.file)){
+        if(!downloadHolder.downloadTask.m3u8&&downloadHolder.response.contentLength()!=-1&&downloadHolder.response.contentLength()!=Files.size(downloadHolder.file)){
             logger.warn("[文件大小不匹配]预期大小:{},实际大小:{},路径:{}",downloadHolder.response.contentLength(),Files.size(downloadHolder.file),downloadHolder.file);
-            //若实际大小大于预期大小,则删掉文件重新下载
             if(downloadHolder.response.contentLength()<Files.size(downloadHolder.file)){
-                Files.deleteIfExists(downloadHolder.file);
+                //若实际大小大于预期大小,则删掉临时文件重新下载
+                for(Path subPath:downloadHolder.downloadProgress.subFileList){
+                    if(null!=subPath&&Files.exists(subPath)){
+                        Files.deleteIfExists(subPath);
+                    }
+                }
             }
             return false;
         }
@@ -299,13 +314,15 @@ public class AbstractDownloadPool implements DownloadPool{
     private boolean isDownloadTaskExist(DownloadHolder downloadHolder){
         try {
             downloadHolderListLock.lock();
-            //设置超时时间
-            int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.downloadPoolConfig.connectTimeoutMillis;
-            int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.downloadPoolConfig.readTimeoutMillis;
-            downloadHolder.response = downloadHolder.downloadTask.connection
-                    .connectTimeout(connectTimeoutMillis)
-                    .readTimeout(readTimeoutMillis)
-                    .execute();
+            if(null==downloadHolder.response){
+                //设置超时时间
+                int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.downloadPoolConfig.connectTimeoutMillis;
+                int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.downloadPoolConfig.readTimeoutMillis;
+                downloadHolder.response = downloadHolder.downloadTask.connection
+                        .connectTimeout(connectTimeoutMillis)
+                        .readTimeout(readTimeoutMillis)
+                        .execute();
+            }
             //获取最终文件保存路径
             if(null!=downloadHolder.downloadTask.filePath){
                 downloadHolder.file = Paths.get(downloadHolder.downloadTask.filePath);
@@ -328,6 +345,9 @@ public class AbstractDownloadPool implements DownloadPool{
             while(iterator.hasNext()){
                 DownloadHolder downloadHolder1 = iterator.next();
                 if(downloadHolder==downloadHolder1){
+                    continue;
+                }
+                if(null==downloadHolder1||null==downloadHolder1.file){
                     continue;
                 }
                 if(downloadHolder1.file.toString().equals(downloadHolder.file.toString())){

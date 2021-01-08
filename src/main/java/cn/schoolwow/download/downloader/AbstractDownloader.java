@@ -21,11 +21,17 @@ public abstract class AbstractDownloader implements Downloader{
      * @param downloadHolder 下载任务
      * */
     protected void mergeSubFileList(DownloadHolder downloadHolder, CountDownLatch countDownLatch) throws IOException {
-        int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.downloadPoolConfig.downloadTimeoutMillis;
+        int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600000?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.downloadPoolConfig.downloadTimeoutMillis;
         try {
             countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+        //检查是否可以合并
+        for(Path subFile:downloadHolder.downloadProgress.subFileList){
+            if(!Files.isReadable(subFile)){
+                throw new IOException("文件合并失败,分段文件无法访问!路径:"+subFile.toString());
+            }
         }
 
         Path file = downloadHolder.file;

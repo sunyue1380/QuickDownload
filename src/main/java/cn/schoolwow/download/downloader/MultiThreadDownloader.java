@@ -41,7 +41,10 @@ public class MultiThreadDownloader extends AbstractDownloader{
                         Files.createFile(subFile);
                     }
                     if (Files.size(subFile) >= expectSize) {
-                        logger.debug("[当前分段已经下载完毕]大小:{},分段文件路径:{}", String.format("%.2fMB", Files.size(subFile) / 1.0 / 1024 / 1024), subFile);
+                        logger.debug("[当前分段已经下载完毕]预期大小:{},实际大小:{},分段文件路径:{}",
+                                String.format("%.2fMB", expectSize / 1.0 / 1024 / 1024),
+                                String.format("%.2fMB", Files.size(subFile) / 1.0 / 1024 / 1024),
+                                subFile);
                         return;
                     }
                     int retryTimes = QuickHttpConfig.retryTimes;
@@ -52,8 +55,8 @@ public class MultiThreadDownloader extends AbstractDownloader{
                         subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
                         retryTimes--;
                     }
-                    logger.debug("[分段文件下载完毕]目标大小:{},当前大小:{},路径:{}",
-                            String.format("%.2fMB", (end - start + 1) / 1.0 / 1024 / 1024),
+                    logger.debug("[分段文件下载完毕]预期大小:{},当前大小:{},路径:{}",
+                            String.format("%.2fMB", expectSize / 1.0 / 1024 / 1024),
                             String.format("%.2fMB", Files.size(subFile) / 1.0 / 1024 / 1024),
                             subFile
                     );

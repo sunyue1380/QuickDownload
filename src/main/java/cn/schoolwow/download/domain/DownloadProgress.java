@@ -7,6 +7,10 @@ import java.nio.file.Path;
  * */
 public class DownloadProgress {
     /**
+     * 序号
+     * */
+    public int no;
+    /**
      * 当前状态
      */
     public String state = "等待下载";
@@ -33,7 +37,7 @@ public class DownloadProgress {
     /**
      * 当前已下载大小
      */
-    public String currentFileSizeFormat = "0.00MB";
+    public String currentFileSizeFormat = "-";
     /**
      * 文件总大小
      */
@@ -41,7 +45,7 @@ public class DownloadProgress {
     /**
      * 文件总大小
      */
-    public String totalFileSizeFormat = "0.00MB";
+    public String totalFileSizeFormat = "-";
     /**
      * 下载速度(kb/s)
      */
@@ -49,7 +53,7 @@ public class DownloadProgress {
     /**
      * 下载速度(kb/s)
      */
-    public String downloadSpeedFormat = "0kb/s";
+    public String downloadSpeedFormat = "-";
     /**
      * 进度
      */

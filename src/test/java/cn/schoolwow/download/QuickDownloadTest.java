@@ -20,7 +20,14 @@ public class QuickDownloadTest {
                 .temporaryDirectoryPath(System.getProperty("user.dir")+"/temp")
                 .build();
         new Thread(()->{
-            downloadPool.printDownloadProgress();
+            while(true){
+                downloadPool.printDownloadProgress();
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }).start();
 
         DownloadTask downloadTask = new DownloadTask();
