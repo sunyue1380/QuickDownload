@@ -2,7 +2,6 @@ package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
 import cn.schoolwow.quickhttp.response.Response;
-import cn.schoolwow.quickhttp.util.QuickHttpConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,26 +39,26 @@ public class MultiThreadDownloader extends AbstractDownloader{
                     if (!Files.exists(subFile)) {
                         Files.createFile(subFile);
                     }
-                    if (Files.size(subFile) >= expectSize) {
-                        logger.debug("[当前分段已经下载完毕]预期大小:{},实际大小:{},分段文件路径:{}",
-                                String.format("%.2fMB", expectSize / 1.0 / 1024 / 1024),
-                                String.format("%.2fMB", Files.size(subFile) / 1.0 / 1024 / 1024),
-                                subFile);
+                    if (Files.size(subFile) == expectSize) {
                         return;
                     }
-                    int retryTimes = QuickHttpConfig.retryTimes;
-                    while (Files.size(subFile) < expectSize && retryTimes >= 0) {
-                        Response subResponse = downloadHolder.downloadTask.connection.clone()
+                    int retryTimes = 1;
+                    while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.downloadPoolConfig.retryTimes) {
+                        Response subResponse = downloadHolder.downloadTask.request.clone()
                                 .ranges(start + Files.size(subFile), end)
                                 .execute();
-                        subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
-                        retryTimes--;
+                        if(null!=subResponse){
+                            subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
+                        }
+                        retryTimes++;
                     }
-                    logger.debug("[分段文件下载完毕]预期大小:{},当前大小:{},路径:{}",
-                            String.format("%.2fMB", expectSize / 1.0 / 1024 / 1024),
-                            String.format("%.2fMB", Files.size(subFile) / 1.0 / 1024 / 1024),
-                            subFile
-                    );
+                    if(expectSize!=Files.size(subFile)){
+                        logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}",
+                                expectSize,
+                                Files.size(subFile),
+                                subFile
+                        );
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {

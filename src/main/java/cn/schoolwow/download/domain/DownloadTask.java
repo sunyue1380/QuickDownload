@@ -1,7 +1,7 @@
 package cn.schoolwow.download.domain;
 
 import cn.schoolwow.download.listener.DownloadTaskListener;
-import cn.schoolwow.quickhttp.connection.Connection;
+import cn.schoolwow.quickhttp.request.Request;
 import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
@@ -13,10 +13,10 @@ import java.util.function.Supplier;
 /**下载任务*/
 public class DownloadTask {
     /**下载任务*/
-    public Connection connection;
+    public Request request;
 
     /**延时下载任务*/
-    public Supplier<Connection> connectionSupplier;
+    public Supplier<Request> requestSupplier;
 
     /**是否为m3u8任务*/
     public boolean m3u8;

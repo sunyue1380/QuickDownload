@@ -122,10 +122,10 @@ public class AbstractDownloadPool implements DownloadPool{
         }
 
         downloadHolder.downloadThread = new Thread(()->{
-            if(null!=downloadHolder.downloadTask.connectionSupplier){
-                downloadHolder.downloadTask.connection = downloadHolder.downloadTask.connectionSupplier.get();
+            if(null!=downloadHolder.downloadTask.requestSupplier){
+                downloadHolder.downloadTask.request = downloadHolder.downloadTask.requestSupplier.get();
             }
-            if(null==downloadTask.connection){
+            if(null==downloadTask.request){
                 logger.warn("[下载链接为空]");
                 return;
             }
@@ -264,14 +264,6 @@ public class AbstractDownloadPool implements DownloadPool{
     private boolean isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
         if(!downloadHolder.downloadTask.m3u8&&downloadHolder.response.contentLength()!=-1&&downloadHolder.response.contentLength()!=Files.size(downloadHolder.file)){
             logger.warn("[文件大小不匹配]预期大小:{},实际大小:{},路径:{}",downloadHolder.response.contentLength(),Files.size(downloadHolder.file),downloadHolder.file);
-            if(downloadHolder.response.contentLength()<Files.size(downloadHolder.file)){
-                //若实际大小大于预期大小,则删掉临时文件重新下载
-                for(Path subPath:downloadHolder.downloadProgress.subFileList){
-                    if(null!=subPath&&Files.exists(subPath)){
-                        Files.deleteIfExists(subPath);
-                    }
-                }
-            }
             return false;
         }
         if(null!=downloadHolder.downloadTask.fileIntegrityChecker&&!downloadHolder.downloadTask.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
@@ -293,7 +285,7 @@ public class AbstractDownloadPool implements DownloadPool{
     private boolean isFileDownloadedAlready(DownloadHolder downloadHolder) throws IOException {
         //获取文件大小信息
         if(null==downloadHolder.response){
-            downloadHolder.response = downloadHolder.downloadTask.connection.execute();
+            downloadHolder.response = downloadHolder.downloadTask.request.execute();
         }
         if(Files.exists(downloadHolder.file)&&isFileIntegrityPass(downloadHolder)){
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
@@ -318,7 +310,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 //设置超时时间
                 int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.downloadPoolConfig.connectTimeoutMillis;
                 int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.downloadPoolConfig.readTimeoutMillis;
-                downloadHolder.response = downloadHolder.downloadTask.connection
+                downloadHolder.response = downloadHolder.downloadTask.request
                         .connectTimeout(connectTimeoutMillis)
                         .readTimeout(readTimeoutMillis)
                         .execute();

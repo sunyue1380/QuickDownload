@@ -3,7 +3,7 @@ package cn.schoolwow.download.util;
 import cn.schoolwow.download.domain.m3u8.MasterPlaylist;
 import cn.schoolwow.download.domain.m3u8.MediaPlaylist;
 import cn.schoolwow.download.domain.m3u8.tag.*;
-import cn.schoolwow.quickhttp.connection.Connection;
+import cn.schoolwow.quickhttp.request.Request;
 import cn.schoolwow.quickhttp.response.Response;
 import com.alibaba.fastjson.JSONObject;
 
@@ -19,10 +19,10 @@ import java.util.List;
 public class QuickDownloadUtil {
     /**
      * 获取m3u8主播放文件信息
-     * @param connection 链接
+     * @param request 链接
      * */
-    public static MasterPlaylist getMasterPlaylist(Connection connection) throws IOException {
-        Response response = connection.execute();
+    public static MasterPlaylist getMasterPlaylist(Request request) throws IOException {
+        Response response = request.execute();
         Path tempPath = Files.createTempFile("QuickTool",".m3u8");
         response.bodyAsFile(tempPath);
         Iterator<String> iterable = Files.lines(tempPath).iterator();
@@ -32,10 +32,10 @@ public class QuickDownloadUtil {
 
     /**
      * 获取m3u8媒体播放列表
-     * @param connection 链接
+     * @param request 链接
      * */
-    public static MediaPlaylist getMediaPlaylist(Connection connection) throws IOException {
-        return getMediaPlaylist(connection.execute());
+    public static MediaPlaylist getMediaPlaylist(Request request) throws IOException {
+        return getMediaPlaylist(request.execute());
     }
 
     /**

@@ -44,7 +44,7 @@ public class M3u8Downloader extends AbstractDownloader{
                         continue;
                     }
                     try {
-                        Response subResponse = downloadHolder.downloadTask.connection.clone()
+                        Response subResponse = downloadHolder.downloadTask.request.clone()
                                 .url(mediaPlaylist.segmentList.get(j).URI)
                                 .retryTimes(3)
                                 .execute();
