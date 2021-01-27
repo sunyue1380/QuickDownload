@@ -36,9 +36,6 @@ public class DownloadTask {
     /**下载超时时间*/
     public int downloadTimeoutMillis = 3600000;
 
-    /**指定最大线程连接个数*/
-    public int maxThreadConnection = Runtime.getRuntime().availableProcessors()*2;
-
     /**指定最大下载速度(kb/s)*/
     public int maxDownloadSpeed;
 

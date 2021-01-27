@@ -101,7 +101,8 @@ public class QuickDownload {
      * @param maxThreadConnection 最大线程连接个数
      * */
     public QuickDownload maxThreadConnection(int maxThreadConnection){
-        downloadPoolConfig.maxThreadConnection = maxThreadConnection;
+        int parallelDownloadCount = downloadPoolConfig.threadPoolExecutor.getCorePoolSize();
+        downloadPoolConfig.downloadThreadPoolExecutor.setCorePoolSize(parallelDownloadCount*maxThreadConnection);
         return this;
     }
 

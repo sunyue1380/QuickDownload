@@ -13,8 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**m3u8格式视频下载*/
 public class M3u8Downloader extends AbstractDownloader{
@@ -22,11 +20,9 @@ public class M3u8Downloader extends AbstractDownloader{
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
         downloadHolder.downloadProgress.m3u8 = true;
-        int maxThreadConnection = downloadHolder.downloadTask.maxThreadConnection>0?downloadHolder.downloadTask.maxThreadConnection:downloadHolder.downloadPoolConfig.maxThreadConnection;
+        int maxThreadConnection = downloadHolder.downloadPoolConfig.maxThreadConnection;
 
         MediaPlaylist mediaPlaylist = getMediaPlaylist(downloadHolder.response);
-        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxThreadConnection);
-        threadPoolExecutor.setThreadFactory(threadFactory);
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         int per = mediaPlaylist.segmentList.size()/maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[mediaPlaylist.segmentList.size()];
@@ -37,7 +33,7 @@ public class M3u8Downloader extends AbstractDownloader{
             final int start = i*per;
             final int end = (i==maxThreadConnection-1)?mediaPlaylist.segmentList.size()-1:((i+1)*per-1);
 
-            threadPoolExecutor.execute(()->{
+            downloadHolder.downloadPoolConfig.downloadThreadPoolExecutor.execute(()->{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
                     if(Files.exists(subFilePath)){

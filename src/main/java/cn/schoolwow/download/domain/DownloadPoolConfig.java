@@ -51,4 +51,7 @@ public class DownloadPoolConfig {
 
     /**下载任务调度线程池*/
     public ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    /**实际http下载线程池*/
+    public ThreadPoolExecutor downloadThreadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*maxThreadConnection);
 }

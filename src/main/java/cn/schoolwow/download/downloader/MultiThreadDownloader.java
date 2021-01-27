@@ -11,8 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**多线程下载*/
 public class MultiThreadDownloader extends AbstractDownloader{
@@ -21,12 +19,10 @@ public class MultiThreadDownloader extends AbstractDownloader{
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.downloadPoolConfig.maxDownloadSpeed;
-        int maxThreadConnection = downloadHolder.downloadTask.maxThreadConnection==Runtime.getRuntime().availableProcessors()*2?downloadHolder.downloadTask.maxThreadConnection:downloadHolder.downloadPoolConfig.maxThreadConnection;
+        int maxThreadConnection = downloadHolder.downloadPoolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         long contentLength = downloadHolder.response.contentLength();
         long per = contentLength / maxThreadConnection;
-        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(maxThreadConnection);
-        threadPoolExecutor.setThreadFactory(threadFactory);
         downloadHolder.downloadProgress.subFileList = new Path[maxThreadConnection];
         for (int i = 0; i < maxThreadConnection; i++) {
             final long start = i * per;
@@ -34,7 +30,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
             final long expectSize = (end-start+1);
             final Path subFile = Paths.get(downloadHolder.downloadPoolConfig.temporaryDirectoryPath + File.separator + "[" + i + "]." + contentLength + "." + downloadHolder.file.getFileName().toString());
             downloadHolder.downloadProgress.subFileList[i] = subFile;
-            threadPoolExecutor.execute(() -> {
+            downloadHolder.downloadPoolConfig.downloadThreadPoolExecutor.execute(() -> {
                 try {
                     if (!Files.exists(subFile)) {
                         Files.createFile(subFile);
