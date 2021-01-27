@@ -7,12 +7,13 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 /**下载池配置项*/
-public class DownloadPoolConfig {
+public class PoolConfig {
     /**下载失败重试次数*/
     public int retryTimes = 3;
 
@@ -50,8 +51,27 @@ public class DownloadPoolConfig {
     public List<DownloadPoolListener> downloadPoolListenerList = new ArrayList<>();
 
     /**下载任务调度线程池*/
-    public ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    public ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors(),
+            1,
+            TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>()
+    );
+    {
+        threadPoolExecutor.allowCoreThreadTimeOut(true);
+    }
 
     /**实际http下载线程池*/
-    public ThreadPoolExecutor downloadThreadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*maxThreadConnection);
+    public ThreadPoolExecutor downloadThreadPoolExecutor = new ThreadPoolExecutor(
+            threadPoolExecutor.getCorePoolSize()*maxThreadConnection,
+            threadPoolExecutor.getCorePoolSize()*maxThreadConnection,
+            1,
+            TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>()
+    );
+    {
+        downloadThreadPoolExecutor.allowCoreThreadTimeOut(true);
+    }
+
 }

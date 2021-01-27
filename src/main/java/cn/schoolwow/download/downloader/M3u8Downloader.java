@@ -20,20 +20,20 @@ public class M3u8Downloader extends AbstractDownloader{
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
         downloadHolder.downloadProgress.m3u8 = true;
-        int maxThreadConnection = downloadHolder.downloadPoolConfig.maxThreadConnection;
+        int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
 
         MediaPlaylist mediaPlaylist = getMediaPlaylist(downloadHolder.response);
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         int per = mediaPlaylist.segmentList.size()/maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[mediaPlaylist.segmentList.size()];
         for(int i=0;i<mediaPlaylist.segmentList.size();i++){
-            downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.downloadPoolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +mediaPlaylist.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
+            downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +mediaPlaylist.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
         }
         for(int i=0;i<maxThreadConnection;i++){
             final int start = i*per;
             final int end = (i==maxThreadConnection-1)?mediaPlaylist.segmentList.size()-1:((i+1)*per-1);
 
-            downloadHolder.downloadPoolConfig.downloadThreadPoolExecutor.execute(()->{
+            downloadHolder.poolConfig.downloadThreadPoolExecutor.execute(()->{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
                     if(Files.exists(subFilePath)){

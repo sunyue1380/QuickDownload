@@ -11,6 +11,11 @@ public interface DownloadPool {
     /**
      * 获取下载进度列表
      * */
+    DownloadPoolConfig downloadPoolConfig();
+
+    /**
+     * 获取下载进度列表
+     * */
     List<DownloadProgress> getProgressList();
 
     /**

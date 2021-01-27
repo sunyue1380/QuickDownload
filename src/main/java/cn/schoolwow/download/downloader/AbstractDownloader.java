@@ -16,7 +16,7 @@ public abstract class AbstractDownloader implements Downloader{
      * @param downloadHolder 下载任务
      * */
     protected void mergeSubFileList(DownloadHolder downloadHolder, CountDownLatch countDownLatch) throws IOException {
-        int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600000?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.downloadPoolConfig.downloadTimeoutMillis;
+        int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600000?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.poolConfig.downloadTimeoutMillis;
         try {
             countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {

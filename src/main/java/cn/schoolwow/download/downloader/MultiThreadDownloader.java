@@ -18,8 +18,8 @@ public class MultiThreadDownloader extends AbstractDownloader{
 
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
-        int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.downloadPoolConfig.maxDownloadSpeed;
-        int maxThreadConnection = downloadHolder.downloadPoolConfig.maxThreadConnection;
+        int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
+        int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         long contentLength = downloadHolder.response.contentLength();
         long per = contentLength / maxThreadConnection;
@@ -28,9 +28,9 @@ public class MultiThreadDownloader extends AbstractDownloader{
             final long start = i * per;
             final long end = (i == maxThreadConnection - 1) ? contentLength - 1 : ((i + 1) * per - 1);
             final long expectSize = (end-start+1);
-            final Path subFile = Paths.get(downloadHolder.downloadPoolConfig.temporaryDirectoryPath + File.separator + "[" + i + "]." + contentLength + "." + downloadHolder.file.getFileName().toString());
+            final Path subFile = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "[" + i + "]." + contentLength + "." + downloadHolder.file.getFileName().toString());
             downloadHolder.downloadProgress.subFileList[i] = subFile;
-            downloadHolder.downloadPoolConfig.downloadThreadPoolExecutor.execute(() -> {
+            downloadHolder.poolConfig.downloadThreadPoolExecutor.execute(() -> {
                 try {
                     if (!Files.exists(subFile)) {
                         Files.createFile(subFile);
@@ -39,7 +39,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
                         return;
                     }
                     int retryTimes = 1;
-                    while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.downloadPoolConfig.retryTimes) {
+                    while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
                         Response subResponse = downloadHolder.downloadTask.request.clone()
                                 .ranges(start + Files.size(subFile), end)
                                 .execute();

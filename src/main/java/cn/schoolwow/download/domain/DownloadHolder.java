@@ -16,7 +16,7 @@ public class DownloadHolder {
     public Response response;
 
     /**下载池配置项*/
-    public DownloadPoolConfig downloadPoolConfig;
+    public PoolConfig poolConfig;
 
     /**关联下载进度*/
     public DownloadProgress downloadProgress;

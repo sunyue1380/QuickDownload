@@ -16,11 +16,14 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class AbstractDownloadPool implements DownloadPool{
-    private static Logger logger = LoggerFactory.getLogger(AbstractDownloadPool.class);
+public class DownloadPoolImpl implements DownloadPool{
+    private static Logger logger = LoggerFactory.getLogger(DownloadPoolImpl.class);
 
-    /**下载线程池配置信息*/
-    private DownloadPoolConfig downloadPoolConfig = new DownloadPoolConfig();
+    /**线程池配置信息*/
+    private PoolConfig poolConfig = new PoolConfig();
+
+    /**线程池配置类*/
+    private DownloadPoolConfig downloadPoolConfig = new DownloadPoolConfigImpl(poolConfig);
 
     /**下载进度列表*/
     private List<DownloadHolder> downloadHolderList = new CopyOnWriteArrayList<>();
@@ -28,8 +31,9 @@ public class AbstractDownloadPool implements DownloadPool{
     /**同步锁*/
     private ReentrantLock downloadHolderListLock = new ReentrantLock();
 
-    public AbstractDownloadPool(DownloadPoolConfig downloadPoolConfig) {
-        this.downloadPoolConfig = downloadPoolConfig;
+    @Override
+    public DownloadPoolConfig downloadPoolConfig() {
+        return downloadPoolConfig;
     }
 
     @Override
@@ -109,7 +113,7 @@ public class AbstractDownloadPool implements DownloadPool{
         //新建DownloadHolder对象
         DownloadHolder downloadHolder = new DownloadHolder();
         downloadHolder.downloadTask = downloadTask;
-        downloadHolder.downloadPoolConfig = downloadPoolConfig;
+        downloadHolder.poolConfig = poolConfig;
         downloadHolder.downloadProgress = new DownloadProgress();
         downloadHolder.downloadProgress.m3u8 = downloadTask.m3u8;
         //检查下载任务文件目录是否合法
@@ -144,16 +148,16 @@ public class AbstractDownloadPool implements DownloadPool{
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file);
                 }
-                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                     downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file);
                 }
                 //开始正式下载
                 int retryTimes = 1;
-                while(retryTimes<=downloadPoolConfig.retryTimes&&!startDownload(downloadHolder)){
-                    logger.warn("[下载失败]重试{}/{}次,路径:{}",retryTimes,downloadHolder.downloadPoolConfig.retryTimes,downloadHolder.file);
+                while(retryTimes<=poolConfig.retryTimes&&!startDownload(downloadHolder)){
+                    logger.warn("[下载失败]重试{}/{}次,路径:{}",retryTimes,downloadHolder.poolConfig.retryTimes,downloadHolder.file);
                     retryTimes++;
                 }
-                if(retryTimes>=downloadPoolConfig.retryTimes||Files.notExists(downloadHolder.file)){
+                if(retryTimes>=poolConfig.retryTimes||Files.notExists(downloadHolder.file)){
                     logger.warn("[下载失败]路径:{}",downloadHolder.file);
                 }else{
                     logger.info("[文件下载完成]大小:{},路径:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024),downloadHolder.file);
@@ -165,7 +169,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.downloadFinished(downloadHolder.response,downloadHolder.file);
                 }
-                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                     downloadPoolListener.downloadFinished(downloadHolder.response,downloadHolder.file);
                 }
                 //从下载进度表移除
@@ -174,7 +178,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 downloadHolderListLock.unlock();
             }
         });
-        downloadPoolConfig.threadPoolExecutor.execute(downloadHolder.downloadThread);
+        poolConfig.threadPoolExecutor.execute(downloadHolder.downloadThread);
     }
 
     /**
@@ -214,14 +218,14 @@ public class AbstractDownloadPool implements DownloadPool{
                 downloadHolder.downloadTask.m3u8 = true;
                 downloadHolder.downloadProgress.m3u8 = true;
                 DownloaderEnum.M3u8.download(downloadHolder);
-            }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.downloadPoolConfig.singleThread){
+            }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread){
                 DownloaderEnum.SingleThread.download(downloadHolder);
             }else{
                 DownloaderEnum.MultiThread.download(downloadHolder);
             }
             if(isFileIntegrityPass(downloadHolder)){
                 downloadHolder.downloadProgress.state = "下载完成";
-                if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.downloadPoolConfig.deleteTemporaryFile){
+                if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
                     for(Path subFile:downloadHolder.downloadProgress.subFileList){
                         Files.deleteIfExists(subFile);
                     }
@@ -229,7 +233,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
                 }
-                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                     downloadPoolListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
                 }
                 return true;
@@ -238,7 +242,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
                 }
-                for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                     downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
                 }
                 downloadHolder.downloadProgress.state = "下载失败";
@@ -249,7 +253,7 @@ public class AbstractDownloadPool implements DownloadPool{
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                 downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
             }
-            for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                 downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
             }
             return false;
@@ -270,7 +274,7 @@ public class AbstractDownloadPool implements DownloadPool{
             logger.warn("[下载任务文件完整性校验未通过]路径:{}",downloadHolder.file);
             return false;
         }
-        if(null!=downloadPoolConfig.fileIntegrityChecker&&!downloadPoolConfig.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
+        if(null!=poolConfig.fileIntegrityChecker&&!poolConfig.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
             logger.warn("[下载池文件完整性校验未通过]路径:{}",downloadHolder.file);
             return false;
         }
@@ -291,7 +295,7 @@ public class AbstractDownloadPool implements DownloadPool{
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                 downloadTaskListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
             }
-            for(DownloadPoolListener downloadPoolListener:downloadPoolConfig.downloadPoolListenerList){
+            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                 downloadPoolListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
             }
             return true;
@@ -308,8 +312,8 @@ public class AbstractDownloadPool implements DownloadPool{
             downloadHolderListLock.lock();
             if(null==downloadHolder.response){
                 //设置超时时间
-                int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.downloadPoolConfig.connectTimeoutMillis;
-                int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.downloadPoolConfig.readTimeoutMillis;
+                int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.poolConfig.connectTimeoutMillis;
+                int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.poolConfig.readTimeoutMillis;
                 downloadHolder.response = downloadHolder.downloadTask.request
                         .connectTimeout(connectTimeoutMillis)
                         .readTimeout(readTimeoutMillis)
@@ -328,7 +332,7 @@ public class AbstractDownloadPool implements DownloadPool{
                 }
                 String directoryPath = downloadHolder.downloadTask.directoryPath;
                 if(null==directoryPath){
-                    directoryPath = downloadHolder.downloadPoolConfig.directoryPath;
+                    directoryPath = downloadHolder.poolConfig.directoryPath;
                 }
                 downloadHolder.file = Paths.get(directoryPath+"/"+fileName);
             }
@@ -373,7 +377,7 @@ public class AbstractDownloadPool implements DownloadPool{
         }else{
             String directoryPath = downloadHolder.downloadTask.directoryPath;
             if(null==directoryPath){
-                directoryPath = downloadHolder.downloadPoolConfig.directoryPath;
+                directoryPath = downloadHolder.poolConfig.directoryPath;
             }
             downloadHolder.downloadProgress.filePath = directoryPath+"/{{文件名}}";
             result = true;
@@ -411,7 +415,7 @@ public class AbstractDownloadPool implements DownloadPool{
                     return false;
                 }
             }
-        }else if(null==downloadPoolConfig.directoryPath){
+        }else if(null==poolConfig.directoryPath){
             logger.warn("未指定下载路径,请指定文件全路径或者文件保存目录!");
             return false;
         }
