@@ -12,7 +12,7 @@ public class SingleThreadDownloader extends AbstractDownloader{
 
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
-        Path tempFilePath = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath+"/"+downloadHolder.file.getFileName().toString());
+        Path tempFilePath = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath+"/"+System.currentTimeMillis()+"_"+downloadHolder.file.getFileName().toString());
         downloadHolder.downloadProgress.subFileList = new Path[1];
         downloadHolder.downloadProgress.subFileList[0] = tempFilePath;
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
