@@ -10,8 +10,9 @@ public interface DownloadTaskListener {
      * 开始下载数据之前
      * @param response http请求响应
      * @param file 文件路径
+     * @return 是否继续下载
      * */
-    void beforeDownload(Response response, Path file);
+    boolean beforeDownload(Response response, Path file);
 
     /**
      * 文件下载成功时

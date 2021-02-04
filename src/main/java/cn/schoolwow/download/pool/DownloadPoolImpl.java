@@ -146,10 +146,14 @@ public class DownloadPoolImpl implements DownloadPool{
                 }
                 //下载前事件监听
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                    downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file);
+                    if(!downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file)){
+                        return;
+                    }
                 }
                 for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
-                    downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file);
+                    if(!downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file)){
+                        return;
+                    }
                 }
                 //开始正式下载
                 int retryTimes = 1;
