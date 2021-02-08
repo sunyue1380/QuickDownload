@@ -222,7 +222,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 downloadHolder.downloadTask.m3u8 = true;
                 downloadHolder.downloadProgress.m3u8 = true;
                 DownloaderEnum.M3u8.download(downloadHolder);
-            }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread){
+            }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread||!downloadHolder.response.acceptRanges()){
                 DownloaderEnum.SingleThread.download(downloadHolder);
             }else{
                 DownloaderEnum.MultiThread.download(downloadHolder);
@@ -373,7 +373,8 @@ public class DownloadPoolImpl implements DownloadPool{
         boolean result = false;
         if(null!=downloadHolder.downloadTask.filePath){
             downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
-            if(isDownloadTaskExist(downloadHolder)){
+            Path path = Paths.get(downloadHolder.downloadProgress.filePath);
+            if(Files.exists(path)){
                 result = false;
             }else{
                 result = true;
