@@ -315,13 +315,7 @@ public class DownloadPoolImpl implements DownloadPool{
         try {
             downloadHolderListLock.lock();
             if(null==downloadHolder.response){
-                //设置超时时间
-                int connectTimeoutMillis = downloadHolder.downloadTask.connectTimeoutMillis>0?downloadHolder.downloadTask.connectTimeoutMillis:downloadHolder.poolConfig.connectTimeoutMillis;
-                int readTimeoutMillis = downloadHolder.downloadTask.readTimeoutMillis>0?downloadHolder.downloadTask.readTimeoutMillis:downloadHolder.poolConfig.readTimeoutMillis;
-                downloadHolder.response = downloadHolder.downloadTask.request
-                        .connectTimeout(connectTimeoutMillis)
-                        .readTimeout(readTimeoutMillis)
-                        .execute();
+                downloadHolder.response = downloadHolder.downloadTask.request.execute();
             }
             //获取最终文件保存路径
             if(null!=downloadHolder.downloadTask.filePath){

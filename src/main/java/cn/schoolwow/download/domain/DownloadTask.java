@@ -27,12 +27,6 @@ public class DownloadTask {
     /**是否强制单线程下载*/
     public boolean singleThread;
 
-    /**连接超时时间*/
-    public int connectTimeoutMillis;
-
-    /**读取超时时间*/
-    public int readTimeoutMillis;
-
     /**下载超时时间*/
     public int downloadTimeoutMillis = 3600000;
 
