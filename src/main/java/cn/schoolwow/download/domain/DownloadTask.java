@@ -11,12 +11,15 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**下载任务*/
-public class DownloadTask {
+public class DownloadTask implements Comparable<DownloadTask>{
     /**下载任务*/
     public Request request;
 
     /**延时下载任务*/
     public Supplier<Request> requestSupplier;
+
+    /**任务优先级(数字越小优先级越高,默认为100)*/
+    public int priority = 100;
 
     /**是否为m3u8任务*/
     public boolean m3u8;
@@ -44,4 +47,15 @@ public class DownloadTask {
 
     /**事件监听*/
     public List<DownloadTaskListener> downloadTaskListenerList = new ArrayList<>();
+
+    @Override
+    public int compareTo(DownloadTask downloadTask) {
+        if(this.priority<downloadTask.priority){
+            return -1;
+        }else if(this.priority>downloadTask.priority){
+            return 1;
+        }else{
+            return 0;
+        }
+    }
 }

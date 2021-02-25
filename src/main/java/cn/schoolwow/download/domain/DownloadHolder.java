@@ -1,5 +1,6 @@
 package cn.schoolwow.download.domain;
 
+import cn.schoolwow.download.pool.PriorityThread;
 import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
@@ -24,6 +25,6 @@ public class DownloadHolder {
     /**批量下载任务线程同步*/
     public CountDownLatch countDownLatch;
 
-    /**下载线程*/
-    public Thread downloadThread;
+    /**优先级下载任务线程*/
+    public PriorityThread priorityThread;
 }

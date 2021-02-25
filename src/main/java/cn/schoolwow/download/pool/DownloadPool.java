@@ -25,7 +25,7 @@ public interface DownloadPool {
 
     /**
      * 下载任务
-     * @param downloadTask 下载任务
+     * @param downloadTasks 下载任务
      * */
-    void download(DownloadTask downloadTask) throws IOException;
+    void download(DownloadTask... downloadTasks) throws IOException;
 }

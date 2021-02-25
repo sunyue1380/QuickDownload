@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -56,7 +57,7 @@ public class PoolConfig {
             Runtime.getRuntime().availableProcessors(),
             1,
             TimeUnit.MINUTES,
-            new LinkedBlockingQueue<>()
+            new PriorityBlockingQueue<>()
     );
     {
         threadPoolExecutor.allowCoreThreadTimeOut(true);

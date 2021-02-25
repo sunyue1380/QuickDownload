@@ -39,10 +39,10 @@ public class QuickDownload {
 
     /**
      * 下载任务
-     * @param downloadTask 下载任务
+     * @param downloadTasks 下载任务
      * */
-    public static void download(DownloadTask downloadTask) throws IOException{
-        downloadPool.download(downloadTask);
+    public static void download(DownloadTask... downloadTasks) throws IOException{
+        downloadPool.download(downloadTasks);
     }
 
     /**

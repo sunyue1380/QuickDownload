@@ -132,10 +132,10 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
      * @param parallelDownloadCount 最大同时下载任务个数
      * */
     public DownloadPoolConfig parallelDownloadCount(int parallelDownloadCount){
-        poolConfig.threadPoolExecutor.setMaximumPoolSize(parallelDownloadCount);
         poolConfig.threadPoolExecutor.setCorePoolSize(parallelDownloadCount);
-        poolConfig.downloadThreadPoolExecutor.setMaximumPoolSize(parallelDownloadCount*poolConfig.maxThreadConnection);
+        poolConfig.threadPoolExecutor.setMaximumPoolSize(parallelDownloadCount);
         poolConfig.downloadThreadPoolExecutor.setCorePoolSize(parallelDownloadCount*poolConfig.maxThreadConnection);
+        poolConfig.downloadThreadPoolExecutor.setMaximumPoolSize(parallelDownloadCount*poolConfig.maxThreadConnection);
         return this;
     }
 
