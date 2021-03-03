@@ -18,6 +18,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
 
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
+        downloadHolder.response.disconnect();
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);

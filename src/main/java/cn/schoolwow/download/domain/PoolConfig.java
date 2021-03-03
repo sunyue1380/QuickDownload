@@ -75,4 +75,15 @@ public class PoolConfig {
         downloadThreadPoolExecutor.allowCoreThreadTimeOut(true);
     }
 
+    /**批量任务下载完成后处理线程池*/
+    public ThreadPoolExecutor batchDownloadTaskThreadPoolExecutor = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors(),
+            1,
+            TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>()
+    );
+    {
+        threadPoolExecutor.allowCoreThreadTimeOut(true);
+    }
 }

@@ -15,7 +15,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public class DownloadPoolImpl implements DownloadPool{
     private static Logger logger = LoggerFactory.getLogger(DownloadPoolImpl.class);
@@ -111,37 +114,76 @@ public class DownloadPoolImpl implements DownloadPool{
             logger.warn("[下载任务数组为空]");
             return;
         }
-        DownloadHolder[] downloadHolders = new DownloadHolder[downloadTasks.length];
-        for(int i=0;i<downloadTasks.length;i++){
-            DownloadTask downloadTask = downloadTasks[i];
-            if(null==downloadTask){
-                logger.warn("[下载任务为空]");
-                return;
+        for(DownloadTask downloadTask: downloadTasks){
+            DownloadHolder downloadHolder = getDownloadHolder(downloadTask);
+            if(null==downloadHolder){
+                continue;
             }
-            //新建DownloadHolder对象
-            DownloadHolder downloadHolder = new DownloadHolder();
-            downloadHolder.downloadTask = downloadTask;
-            downloadHolder.poolConfig = poolConfig;
-            downloadHolder.downloadProgress = new DownloadProgress();
-            downloadHolder.downloadProgress.m3u8 = downloadTask.m3u8;
-            //检查下载任务文件目录是否合法
-            if(!checkDownloadTask(downloadHolder)){
-                return;
-            }
-            //添加到下载进度列表
-            if(!addToDownloadHolderList(downloadHolder)){
-                return;
-            }
-            downloadHolder.priorityThread = new PriorityThread(this,downloadHolder);
-            downloadHolders[i] = downloadHolder;
-        }
-        for(DownloadHolder downloadHolder:downloadHolders){
             poolConfig.threadPoolExecutor.execute(downloadHolder.priorityThread);
         }
     }
 
+    @Override
+    public void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks) throws IOException {
+        if(null==downloadTasks||downloadTasks.length==0){
+            logger.warn("[下载任务数组为空]");
+            return;
+        }
+        CountDownLatch countDownLatch = new CountDownLatch(downloadTasks.length);
+        DownloadHolder[] downloadHolders = new DownloadHolder[downloadTasks.length];
+        for(int i=0;i<downloadTasks.length;i++){
+            downloadHolders[i] = getDownloadHolder(downloadTasks[i]);
+            if(null==downloadHolders[i]){
+                countDownLatch.countDown();
+                continue;
+            }
+            downloadHolders[i].countDownLatch = countDownLatch;
+            poolConfig.threadPoolExecutor.execute(downloadHolders[i].priorityThread);
+        }
+        poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
+            try {
+                countDownLatch.await(2, TimeUnit.HOURS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Path[] paths = new Path[downloadHolders.length];
+            for(int i=0;i<paths.length;i++){
+                if(null!=downloadHolders[i]){
+                    paths[i] = downloadHolders[i].file;
+                }
+            }
+            downloadFinished.accept(paths);
+        });
+    }
+
     /**
-     * 获取DownloadHolder对象并添加到下载进度列表
+     * 获取DownloadHolder对象
+     * */
+    private DownloadHolder getDownloadHolder(DownloadTask downloadTask){
+        if(null==downloadTask){
+            logger.warn("[下载任务为空]");
+            return null;
+        }
+        //新建DownloadHolder对象
+        DownloadHolder downloadHolder = new DownloadHolder();
+        downloadHolder.downloadTask = downloadTask;
+        downloadHolder.poolConfig = poolConfig;
+        downloadHolder.downloadProgress = new DownloadProgress();
+        downloadHolder.downloadProgress.m3u8 = downloadTask.m3u8;
+        //检查下载任务文件目录是否合法
+        if(!checkDownloadTask(downloadHolder)){
+            return null;
+        }
+        //添加到下载进度列表
+        if(!addToDownloadHolderList(downloadHolder)){
+            return null;
+        }
+        downloadHolder.priorityThread = new PriorityThread(this,downloadHolder);
+        return downloadHolder;
+    }
+
+    /**
+     * 将DownloadHolder对象添加到下载进度列表
      * */
     private boolean addToDownloadHolderList(DownloadHolder downloadHolder){
         downloadHolderListLock.lock();

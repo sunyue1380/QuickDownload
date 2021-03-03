@@ -48,6 +48,21 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
 
     @Override
     public void run() {
+        try {
+            download();
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            if(null!=downloadHolder.countDownLatch){
+                downloadHolder.countDownLatch.countDown();
+            }
+        }
+    }
+
+    /**
+     * 线程执行下载任务
+     * */
+    private void download(){
         //线程执行事件监听
         for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
             if(!downloadPoolListener.afterExecute(downloadHolder.downloadTask)){
@@ -73,6 +88,12 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 logger.info("[文件已经下载完毕]大小:{},文件路径:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024),downloadHolder.file);
                 return;
             }
+
+            if(null==downloadHolder.response){
+                logger.warn("[下载任务执行失败]获取链接请求结果失败!");
+                return;
+            }
+
             //下载前事件监听
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                 if(!downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file)){
@@ -197,7 +218,8 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * @return 文件完整性校验结果
      * */
     private boolean isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
-        if(!downloadHolder.downloadTask.m3u8&&downloadHolder.response.contentLength()!=-1&&downloadHolder.response.contentLength()!=Files.size(downloadHolder.file)){
+        long contentLength = downloadHolder.response.contentLength();
+        if(!downloadHolder.downloadTask.m3u8&&Files.exists(downloadHolder.file)&&contentLength>0&&contentLength!=Files.size(downloadHolder.file)){
             logger.warn("[文件大小不匹配]预期大小:{},实际大小:{},路径:{}",downloadHolder.response.contentLength(),Files.size(downloadHolder.file),downloadHolder.file);
             return false;
         }

@@ -5,6 +5,7 @@ import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.response.Response;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -13,6 +14,49 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class QuickDownloadTest {
+    @BeforeClass
+    public static void beforeClass(){
+        QuickDownload.downloadPoolConfig().temporaryDirectoryPath(System.getProperty("user.dir")+"/temp");
+        new Thread(()->{
+            while(true){
+                QuickDownload.printDownloadProgress();
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    @Test
+    public void batchDownloadTaskTest() throws IOException {
+        DownloadTask[] downloadTasks = new DownloadTask[5];
+        for(int i=0;i<downloadTasks.length;i++){
+            DownloadTask downloadTask = new DownloadTask();
+            downloadTask.request = QuickHttp.connect("http://127.0.0.1/video/yibin.mp4");
+            downloadTask.filePath = "f:/download/yibin_"+i+".mp4";
+            Path path = Paths.get(downloadTask.filePath);
+            Files.deleteIfExists(path);
+            downloadTasks[i] = downloadTask;
+        }
+        QuickDownload.download((paths)->{
+            System.out.println("下载完成,总任务个数:"+paths.length);
+            for(Path path:paths){
+                try {
+                    System.out.println("大小:"+Files.size(path)+","+path);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        },downloadTasks);
+        //主线程等待
+        try {
+            Thread.sleep(1000000l);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
     public void priorityTest(){
@@ -67,19 +111,7 @@ public class QuickDownloadTest {
     }
 
     @Test
-    public void newInstance() throws IOException {
-        QuickDownload.downloadPoolConfig().temporaryDirectoryPath(System.getProperty("user.dir")+"/temp");
-        new Thread(()->{
-            while(true){
-                QuickDownload.printDownloadProgress();
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-
+    public void basicDownloadTaskTest() throws IOException {
         System.out.println("等待3s...");
         try {
             Thread.sleep(3000);

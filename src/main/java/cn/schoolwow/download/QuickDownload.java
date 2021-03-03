@@ -7,7 +7,9 @@ import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.download.pool.DownloadPoolImpl;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**构建下载任务池*/
 public class QuickDownload {
@@ -43,6 +45,15 @@ public class QuickDownload {
      * */
     public static void download(DownloadTask... downloadTasks) throws IOException{
         downloadPool.download(downloadTasks);
+    }
+
+    /**
+     * 下载任务
+     * @param downloadFinished 指定下载任务列表完成后执行
+     * @param downloadTasks 下载任务
+     * */
+    public static void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks) throws IOException{
+        downloadPool.download(downloadFinished,downloadTasks);
     }
 
     /**
