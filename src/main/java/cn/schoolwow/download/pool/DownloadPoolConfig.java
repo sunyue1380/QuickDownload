@@ -32,18 +32,6 @@ public interface DownloadPoolConfig {
     DownloadPoolConfig singleThread(boolean singleThread);
 
     /**
-     * 指定全局下载任务连接超时时间
-     * @param connectTimeoutMillis 下载任务连接超时时间(ms)
-     * */
-    DownloadPoolConfig connectTimeoutMillis(int connectTimeoutMillis);
-
-    /**
-     * 指定全局下载任务读取超时时间
-     * @param readTimeoutMillis 下载任务读取超时时间(ms)
-     * */
-    DownloadPoolConfig readTimeoutMillis(int readTimeoutMillis);
-
-    /**
      * 指定全局下载任务超时时间
      * @param downloadTimeoutMillis 下载任务超时时间(ms)
      * */

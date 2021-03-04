@@ -62,24 +62,6 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     }
 
     /**
-     * 指定全局下载任务连接超时时间
-     * @param connectTimeoutMillis 下载任务连接超时时间(ms)
-     * */
-    public DownloadPoolConfig connectTimeoutMillis(int connectTimeoutMillis){
-        poolConfig.connectTimeoutMillis = connectTimeoutMillis;
-        return this;
-    }
-
-    /**
-     * 指定全局下载任务读取超时时间
-     * @param readTimeoutMillis 下载任务读取超时时间(ms)
-     * */
-    public DownloadPoolConfig readTimeoutMillis(int readTimeoutMillis){
-        poolConfig.readTimeoutMillis = readTimeoutMillis;
-        return this;
-    }
-
-    /**
      * 指定全局下载任务超时时间
      * @param downloadTimeoutMillis 下载任务超时时间(ms)
      * */
