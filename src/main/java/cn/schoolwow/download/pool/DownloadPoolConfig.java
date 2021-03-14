@@ -1,5 +1,6 @@
 package cn.schoolwow.download.pool;
 
+import cn.schoolwow.download.domain.PoolConfig;
 import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.quickhttp.response.Response;
 
@@ -72,4 +73,9 @@ public interface DownloadPoolConfig {
      * @param downloadPoolListener 线程池事件监听接口
      * */
     DownloadPoolConfig downloadPoolListener(DownloadPoolListener downloadPoolListener);
+
+    /**
+     * 获取配置参数
+     * */
+    PoolConfig getPoolCondfig();
 }

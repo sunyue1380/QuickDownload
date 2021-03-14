@@ -85,8 +85,8 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
      * */
     public DownloadPoolConfig maxThreadConnection(int maxThreadConnection){
         int parallelDownloadCount = poolConfig.threadPoolExecutor.getCorePoolSize();
-        poolConfig.downloadThreadPoolExecutor.setMaximumPoolSize(parallelDownloadCount*maxThreadConnection);
         poolConfig.downloadThreadPoolExecutor.setCorePoolSize(parallelDownloadCount*maxThreadConnection);
+        poolConfig.downloadThreadPoolExecutor.setMaximumPoolSize(parallelDownloadCount*maxThreadConnection);
         poolConfig.maxThreadConnection = maxThreadConnection;
         return this;
     }
@@ -137,5 +137,10 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     public DownloadPoolConfig downloadPoolListener(DownloadPoolListener downloadPoolListener){
         poolConfig.downloadPoolListenerList.add(downloadPoolListener);
         return this;
+    }
+
+    @Override
+    public PoolConfig getPoolCondfig() {
+        return this.poolConfig;
     }
 }
