@@ -119,6 +119,7 @@ public class DownloadPoolImpl implements DownloadPool{
             if(null==downloadHolder){
                 continue;
             }
+            logger.trace("[添加下载任务到线程池]下载链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
             poolConfig.threadPoolExecutor.execute(downloadHolder.priorityThread);
         }
     }
@@ -189,14 +190,13 @@ public class DownloadPoolImpl implements DownloadPool{
         downloadHolderListLock.lock();
         downloadHolder.downloadProgress.m3u8 = downloadHolder.downloadTask.m3u8;
         //是否添加成功
-        boolean result = false;
+        boolean result = true;
         if(null!=downloadHolder.downloadTask.filePath){
             downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
             Path path = Paths.get(downloadHolder.downloadProgress.filePath);
             if(Files.exists(path)){
+                logger.debug("[跳过下载任务]文件已存在,路径:{}",path);
                 result = false;
-            }else{
-                result = true;
             }
         }else{
             String directoryPath = downloadHolder.downloadTask.directoryPath;

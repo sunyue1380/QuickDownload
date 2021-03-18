@@ -77,5 +77,5 @@ public interface DownloadPoolConfig {
     /**
      * 获取配置参数
      * */
-    PoolConfig getPoolCondfig();
+    PoolConfig getPoolConfig();
 }

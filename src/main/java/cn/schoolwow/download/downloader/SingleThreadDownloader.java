@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 /**单线程下载*/
 public class SingleThreadDownloader extends AbstractDownloader{
@@ -17,7 +18,7 @@ public class SingleThreadDownloader extends AbstractDownloader{
         downloadHolder.downloadProgress.subFileList[0] = tempFilePath;
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
         downloadHolder.response.maxDownloadSpeed(maxDownloadSpeed).bodyAsFile(tempFilePath);
-        Files.copy(tempFilePath,downloadHolder.file);
+        Files.copy(tempFilePath,downloadHolder.file, StandardCopyOption.REPLACE_EXISTING);
         Files.deleteIfExists(tempFilePath);
     }
 }

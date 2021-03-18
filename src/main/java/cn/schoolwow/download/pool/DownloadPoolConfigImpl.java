@@ -140,7 +140,7 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     }
 
     @Override
-    public PoolConfig getPoolCondfig() {
+    public PoolConfig getPoolConfig() {
         return this.poolConfig;
     }
 }

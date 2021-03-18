@@ -63,9 +63,11 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * 线程执行下载任务
      * */
     private void download(){
+        logger.trace("[下载任务线程启动]链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
         //线程执行事件监听
         for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
             if(!downloadPoolListener.afterExecute(downloadHolder.downloadTask)){
+                logger.trace("[afterExecute监听事件返回]");
                 return;
             }
         }
@@ -78,12 +80,14 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             return;
         }
         //判断下载任务是否存在
+        logger.trace("[检查下载任务是否存在]");
         if(isDownloadTaskExist(downloadHolder)){
             logger.warn("[下载任务已经存在]路径:{}",downloadHolder.file);
             return;
         }
         try {
             //判断文件是否下载完成
+            logger.trace("[判断文件是否下载完成]路径:{}",downloadHolder.file);
             if(isFileDownloadedAlready(downloadHolder)){
                 logger.info("[文件已经下载完毕]大小:{},文件路径:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024),downloadHolder.file);
                 return;
@@ -94,17 +98,21 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 return;
             }
 
+            logger.trace("[监听beforeDownload事件]");
             //下载前事件监听
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                 if(!downloadTaskListener.beforeDownload(downloadHolder.response,downloadHolder.file)){
+                    logger.debug("[监听下载任务beforeDownload事件]该事件返回false,线程返回");
                     return;
                 }
             }
             for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
                 if(!downloadPoolListener.beforeDownload(downloadHolder.response,downloadHolder.file)){
+                    logger.debug("[监听线程池beforeDownload事件]该事件返回false,线程返回");
                     return;
                 }
             }
+            logger.trace("[开始正式下载]链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
             //开始正式下载
             int retryTimes = 1;
             while(retryTimes<=poolConfig.retryTimes&&!startDownload(downloadHolder)){
@@ -140,6 +148,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * */
     private boolean startDownload(DownloadHolder downloadHolder) {
         //更新下载进度信息
+        logger.trace("[更新下载进度信息]");
         {
             downloadHolder.downloadProgress.state = "下载中";
             downloadHolder.downloadProgress.filePath = downloadHolder.file.toString();
@@ -156,6 +165,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             }
             downloadHolder.downloadProgress.startTime = System.currentTimeMillis();
         }
+        logger.trace("[判断下载类型]");
         //判断下载类型
         String contentType = downloadHolder.response.contentType();
         if(null==contentType){
@@ -170,11 +180,15 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 downloadHolder.downloadTask.m3u8 = true;
                 downloadHolder.downloadProgress.m3u8 = true;
                 DownloaderEnum.M3u8.download(downloadHolder);
+                logger.debug("[m3u8下载]路径:{},url:{}",downloadHolder.file,downloadHolder.downloadTask.request.requestMeta().url);
             }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread||!downloadHolder.response.acceptRanges()){
                 DownloaderEnum.SingleThread.download(downloadHolder);
+                logger.debug("[单线程下载]路径:{},url:{}",downloadHolder.file,downloadHolder.downloadTask.request.requestMeta().url);
             }else{
                 DownloaderEnum.MultiThread.download(downloadHolder);
+                logger.debug("[多线程下载]路径:{},url:{}",downloadHolder.file,downloadHolder.downloadTask.request.requestMeta().url);
             }
+            logger.trace("[执行文件完整性校验函数]");
             if(isFileIntegrityPass(downloadHolder)){
                 downloadHolder.downloadProgress.state = "下载完成";
                 if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
