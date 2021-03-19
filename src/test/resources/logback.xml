@@ -3,11 +3,15 @@
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <Target>System.out</Target>
         <encoder>
-            <pattern>%-5level %m %n</pattern>
+            <pattern>%highlight(%-5level) %d{HH:mm:ss.SSS} %c{10}:%L %m %n</pattern>
         </encoder>
     </appender>
 
-    <logger name="cn.schoolwow.quickhttp" level="info" additivity="false">
+    <logger name="cn.schoolwow.quickhttp" level="debug" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+
+    <logger name="cn.schoolwow.download" level="trace" additivity="false">
         <appender-ref ref="stdout"/>
     </logger>
 

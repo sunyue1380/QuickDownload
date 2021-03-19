@@ -5,6 +5,7 @@ import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
 
+/**下载池监听器适配类*/
 public class SimpleDownloadPoolListener implements DownloadPoolListener{
     @Override
     public boolean afterExecute(DownloadTask downloadTask) {

@@ -1,137 +1,113 @@
 package cn.schoolwow.download;
 
 import cn.schoolwow.download.domain.DownloadTask;
-import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.quickhttp.QuickHttp;
-import cn.schoolwow.quickhttp.response.Response;
+import cn.schoolwow.quickserver.QuickServer;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 
 public class QuickDownloadTest {
     @BeforeClass
     public static void beforeClass(){
-        QuickDownload.downloadPoolConfig().temporaryDirectoryPath(System.getProperty("user.dir")+"/temp");
         new Thread(()->{
-            while(true){
-                QuickDownload.printDownloadProgress();
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            try {
+                QuickServer.newInstance()
+                        .staticResourcePath(System.getProperty("user.dir"))
+                        .port(10002)
+                        .start();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }).start();
+        QuickHttp.clientConfig().origin("http://127.0.0.1:10002");
     }
 
     @Test
-    public void batchDownloadTaskTest() throws IOException {
-        DownloadTask[] downloadTasks = new DownloadTask[5];
-        for(int i=0;i<downloadTasks.length;i++){
-            DownloadTask downloadTask = new DownloadTask();
-            downloadTask.request = QuickHttp.connect("http://127.0.0.1/video/yibin.mp4");
-            downloadTask.filePath = "f:/download/yibin_"+i+".mp4";
-            Path path = Paths.get(downloadTask.filePath);
-            Files.deleteIfExists(path);
-            downloadTasks[i] = downloadTask;
-        }
-        QuickDownload.download((paths)->{
-            System.out.println("下载完成,总任务个数:"+paths.length);
-            for(Path path:paths){
-                try {
-                    System.out.println("大小:"+Files.size(path)+","+path);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        },downloadTasks);
-        //主线程等待
+    public void singleDownload() throws IOException {
+        DownloadTask downloadTask = new DownloadTask();
+        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
+        Files.deleteIfExists(tempFilePath);
+        downloadTask.filePath = tempFilePath.toString();
+        downloadTask.request = QuickHttp.connect("/LICENSE");
+        downloadTask.singleThread = true;
+        QuickDownload.download(downloadTask);
         try {
-            Thread.sleep(1000000l);
+            Thread.sleep(2000);
+            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
+            Assert.assertEquals(Files.size(path),Files.size(tempFilePath));
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }finally {
+            Files.deleteIfExists(tempFilePath);
         }
     }
 
     @Test
-    public void priorityTest(){
+    public void multiDownload() throws IOException {
+        DownloadTask downloadTask = new DownloadTask();
+        Path filePath = Paths.get(System.getProperty("user.dir")+"/LICENSE_Test");
+        Files.deleteIfExists(filePath);
+        downloadTask.filePath = filePath.toString();
+        downloadTask.request = QuickHttp.connect("/LICENSE");
+        QuickDownload.download(downloadTask);
+        try {
+            Thread.sleep(2000);
+            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
+            Assert.assertEquals(Files.size(path),Files.size(filePath));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            Files.deleteIfExists(filePath);
+        }
+    }
+
+    @Test
+    public void deleteTemporaryFile() throws IOException {
+        String temporaryDirectoryPath = System.getProperty("user.dir")+"/temporaryFilePath";
+        Path temporaryDirectoryFilePath = Paths.get(temporaryDirectoryPath);
+        Files.deleteIfExists(temporaryDirectoryFilePath);
         DownloadPoolConfig downloadPoolConfig = QuickDownload.downloadPoolConfig();
-        downloadPoolConfig.parallelDownloadCount(1);
-        downloadPoolConfig.downloadPoolListener(new DownloadPoolListener() {
-            @Override
-            public boolean afterExecute(DownloadTask downloadTask) {
-                System.out.println("当前执行任务优先级:"+downloadTask.priority);
-                return false;
-            }
-
-            @Override
-            public boolean beforeDownload(Response response, Path file) {
-                return false;
-            }
-
-            @Override
-            public void downloadSuccess(Response response, Path file) {
-
-            }
-
-            @Override
-            public void downloadFail(Response response, Path file, Exception exception) {
-
-            }
-
-            @Override
-            public void downloadFinished(Response response, Path file) {
-
-            }
-        });
-
-        //优先级顺序测试
-        DownloadTask[] downloadTasks = new DownloadTask[100];
-        for(int i=0;i<downloadTasks.length;i++){
-            downloadTasks[i] = new DownloadTask();
-            downloadTasks[i].priority = i;
-            downloadTasks[i].request = QuickHttp.connect("http://127.0.0.1:10000");
-            downloadTasks[i].filePath = System.getProperty("user.dir")+"/test/downloadTask-"+i+".txt";
-        }
+        downloadPoolConfig.temporaryDirectoryPath(temporaryDirectoryPath).deleteTemporaryFile(true);
+        multiDownload();
+        //检查临时文件目录是否为空
+        Assert.assertTrue(Files.deleteIfExists(temporaryDirectoryFilePath));
+        downloadPoolConfig.temporaryDirectoryPath(temporaryDirectoryPath).deleteTemporaryFile(false);
+        multiDownload();
+        //检查临时文件目录是否不为空
         try {
-            QuickDownload.download(downloadTasks);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            Thread.sleep(1000000000l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+            Files.deleteIfExists(temporaryDirectoryFilePath);
+        }catch (DirectoryNotEmptyException e){
+            Assert.assertTrue(true);
+        }finally {
+            Files.walkFileTree(temporaryDirectoryFilePath, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
 
-    @Test
-    public void basicDownloadTaskTest() throws IOException {
-        System.out.println("等待3s...");
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        for(int i=0;i<5;i++){
-            DownloadTask downloadTask = new DownloadTask();
-            downloadTask.request = QuickHttp.connect("http://127.0.0.1/video/yibin.mp4");
-            downloadTask.filePath = "f:/download/yibin_"+i+".mp4";
-            Path path = Paths.get(downloadTask.filePath);
-            Files.deleteIfExists(path);
-            QuickDownload.download(downloadTask);
-        }
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.deleteIfExists(file);
+                    return FileVisitResult.CONTINUE;
+                }
 
-        //主线程等待
-        try {
-            Thread.sleep(1000000l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.deleteIfExists(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
         }
     }
 }

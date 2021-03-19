@@ -64,6 +64,16 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * */
     private void download(){
         logger.trace("[下载任务线程启动]链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
+        //检查临时文件目录是否存在
+        Path path = Paths.get(poolConfig.temporaryDirectoryPath);
+        logger.trace("[检查临时文件目录是否存在]是否存在:{},路径:{}",Files.exists(path),path);
+        if(Files.notExists(path)){
+            try {
+                Files.createDirectories(path);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         //线程执行事件监听
         for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
             if(!downloadPoolListener.afterExecute(downloadHolder.downloadTask)){
@@ -71,6 +81,8 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 return;
             }
         }
+
+        downloadHolder.downloadProgress.state = "准备下载";
 
         if(null!=downloadHolder.downloadTask.requestSupplier){
             downloadHolder.downloadTask.request = downloadHolder.downloadTask.requestSupplier.get();
@@ -190,6 +202,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             }
             logger.trace("[执行文件完整性校验函数]");
             if(isFileIntegrityPass(downloadHolder)){
+                logger.trace("[文件完整性校验函数通过]");
                 downloadHolder.downloadProgress.state = "下载完成";
                 if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
                     for(Path subFile:downloadHolder.downloadProgress.subFileList){
@@ -204,6 +217,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 }
                 return true;
             }else{
+                logger.trace("[文件完整性校验函数未通过]");
                 IOException exception = new IOException("文件完整性校验失败!");
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
@@ -233,7 +247,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * */
     private boolean isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
         long contentLength = downloadHolder.response.contentLength();
-        if(!downloadHolder.downloadTask.m3u8&&Files.exists(downloadHolder.file)&&contentLength>0&&contentLength!=Files.size(downloadHolder.file)){
+        if(!downloadHolder.downloadTask.m3u8&&null==downloadHolder.response.contentEncoding()&&Files.exists(downloadHolder.file)&&contentLength>0&&contentLength!=Files.size(downloadHolder.file)){
             logger.warn("[文件大小不匹配]预期大小:{},实际大小:{},路径:{}",downloadHolder.response.contentLength(),Files.size(downloadHolder.file),downloadHolder.file);
             return false;
         }

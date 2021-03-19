@@ -4,6 +4,7 @@ import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
 
+/**下载任务监听器适配类*/
 public class SimpleDownloadTaskListener implements DownloadTaskListener{
     @Override
     public boolean beforeDownload(Response response, Path file) {
