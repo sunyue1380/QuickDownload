@@ -22,14 +22,6 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
      * @param temporaryDirectoryPath 临时文件目录
      * */
     public DownloadPoolConfig temporaryDirectoryPath(String temporaryDirectoryPath){
-        Path path = Paths.get(temporaryDirectoryPath);
-        if(Files.notExists(path)){
-            try {
-                Files.createDirectories(path);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
         poolConfig.temporaryDirectoryPath = temporaryDirectoryPath;
         return this;
     }

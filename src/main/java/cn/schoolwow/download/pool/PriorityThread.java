@@ -159,6 +159,16 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * @return 是否下载成功
      * */
     private boolean startDownload(DownloadHolder downloadHolder) {
+        //检查临时下载文件目录是否存在
+        logger.trace("[检查临时文件目录是否存在]路径:{}",downloadHolder.poolConfig.temporaryDirectoryPath);
+        Path temporaryDirectoryPath = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath);
+        if(Files.notExists(temporaryDirectoryPath)){
+            try {
+                Files.createDirectories(temporaryDirectoryPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         //更新下载进度信息
         logger.trace("[更新下载进度信息]");
         {

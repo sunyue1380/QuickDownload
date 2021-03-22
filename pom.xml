@@ -6,7 +6,7 @@
 
     <groupId>cn.schoolwow</groupId>
     <artifactId>QuickDownload</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6-SNAPSHOT</version>
 
     <name>QuickDownload</name>
     <url>https://github.com/sunyue1380/QuickDownload</url>
@@ -109,6 +109,16 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>schoolwow</id>
+            <repositories>
+                <repository>
+                    <id>schoolwow</id>
+                    <name>SchoolWow</name>
+                    <url>http://maven.schoolwow.cn/repository/public/</url>
+                </repository>
+            </repositories>
+        </profile>
         <profile>
             <id>sonatype-oss-release</id>
             <build>
