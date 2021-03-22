@@ -63,7 +63,6 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
      * 线程执行下载任务
      * */
     private void download(){
-        logger.trace("[下载任务线程启动]链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
         //检查临时文件目录是否存在
         Path path = Paths.get(poolConfig.temporaryDirectoryPath);
         logger.trace("[检查临时文件目录是否存在]是否存在:{},路径:{}",Files.exists(path),path);
@@ -91,6 +90,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             logger.warn("[下载链接为空]");
             return;
         }
+        logger.trace("[下载任务线程启动]链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
         //判断下载任务是否存在
         logger.trace("[检查下载任务是否存在]");
         if(isDownloadTaskExist(downloadHolder)){

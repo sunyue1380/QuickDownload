@@ -49,6 +49,26 @@ public class QuickDownloadTest {
     }
 
     @Test
+    public void singleSupplierDownload() throws IOException {
+        DownloadTask downloadTask = new DownloadTask();
+        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
+        Files.deleteIfExists(tempFilePath);
+        downloadTask.filePath = tempFilePath.toString();
+        downloadTask.requestSupplier = ()->QuickHttp.connect("/LICENSE");
+        downloadTask.singleThread = true;
+        QuickDownload.download(downloadTask);
+        try {
+            Thread.sleep(2000);
+            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
+            Assert.assertEquals(Files.size(path),Files.size(tempFilePath));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            Files.deleteIfExists(tempFilePath);
+        }
+    }
+
+    @Test
     public void multiDownload() throws IOException {
         DownloadTask downloadTask = new DownloadTask();
         Path filePath = Paths.get(System.getProperty("user.dir")+"/LICENSE_Test");

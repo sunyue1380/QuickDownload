@@ -119,7 +119,7 @@ public class DownloadPoolImpl implements DownloadPool{
             if(null==downloadHolder){
                 continue;
             }
-            logger.trace("[添加下载任务到线程池]下载链接:{}",downloadHolder.downloadTask.request.requestMeta().url);
+            logger.trace("[添加下载任务到线程池]{}",downloadTask);
             poolConfig.threadPoolExecutor.execute(downloadHolder.priorityThread);
         }
     }
