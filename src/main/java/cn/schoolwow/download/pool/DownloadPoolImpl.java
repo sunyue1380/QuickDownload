@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class DownloadPoolImpl implements DownloadPool{
-    private static Logger logger = LoggerFactory.getLogger(DownloadPoolImpl.class);
+    private Logger logger = LoggerFactory.getLogger(DownloadPoolImpl.class);
 
     /**线程池配置信息*/
     public PoolConfig poolConfig = new PoolConfig();

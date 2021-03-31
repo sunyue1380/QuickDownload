@@ -1,11 +1,19 @@
 package cn.schoolwow.download.listener;
 
+import cn.schoolwow.download.domain.DownloadTask;
 import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
 
 /**单个下载任务事件监听接口*/
 public interface DownloadTaskListener {
+    /**
+     * 下载线程开始执行后
+     * @param downloadTask 下载任务
+     * @return 是否继续执行
+     * */
+    boolean afterExecute(DownloadTask downloadTask);
+
     /**
      * 开始下载数据之前
      * @param response http请求响应

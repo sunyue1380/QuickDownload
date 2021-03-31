@@ -14,7 +14,7 @@ import java.util.concurrent.CountDownLatch;
 
 /**多线程下载*/
 public class MultiThreadDownloader extends AbstractDownloader{
-    private Logger logger = LoggerFactory.getLogger(MultiThreadDownloader.class);
+    private static Logger logger = LoggerFactory.getLogger(MultiThreadDownloader.class);
 
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {

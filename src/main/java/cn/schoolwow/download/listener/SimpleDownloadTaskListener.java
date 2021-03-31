@@ -1,11 +1,17 @@
 package cn.schoolwow.download.listener;
 
+import cn.schoolwow.download.domain.DownloadTask;
 import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
 
 /**下载任务监听器适配类*/
 public class SimpleDownloadTaskListener implements DownloadTaskListener{
+    @Override
+    public boolean afterExecute(DownloadTask downloadTask) {
+        return true;
+    }
+
     @Override
     public boolean beforeDownload(Response response, Path file) {
         return true;
