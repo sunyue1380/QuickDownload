@@ -54,12 +54,15 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             e.printStackTrace();
         }finally {
             logger.trace("[执行downloadFinished事件]");
-            //下载完成事件监听
-            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                downloadTaskListener.downloadFinished(downloadHolder.response,downloadHolder.file);
-            }
-            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
-                downloadPoolListener.downloadFinished(downloadHolder.response,downloadHolder.file);
+            try {
+                for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
+                    downloadTaskListener.downloadFinished(downloadHolder.response,downloadHolder.file);
+                }
+                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
+                    downloadPoolListener.downloadFinished(downloadHolder.response,downloadHolder.file);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
             }
             //从下载进度表移除
             downloadHolderListLock.lock();
