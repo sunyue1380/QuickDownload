@@ -116,8 +116,29 @@
                     <id>schoolwow</id>
                     <name>SchoolWow</name>
                     <url>http://maven.schoolwow.cn/repository/public/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <checksumPolicy>ignore</checksumPolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <!--默认每隔6小时检查快照版本-->
+                        <updatePolicy>interval:360</updatePolicy>
+                        <checksumPolicy>ignore</checksumPolicy>
+                    </snapshots>
                 </repository>
             </repositories>
+
+            <distributionManagement>
+                <repository>
+                    <id>schoolwow</id>
+                    <url>http://maven.schoolwow.cn/deploy</url>
+                </repository>
+                <snapshotRepository>
+                    <id>schoolwow</id>
+                    <url>http://maven.schoolwow.cn/deploy</url>
+                </snapshotRepository>
+            </distributionManagement>
         </profile>
         <profile>
             <id>sonatype-oss-release</id>
