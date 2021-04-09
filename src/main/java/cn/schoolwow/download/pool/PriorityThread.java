@@ -207,6 +207,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                 logger.trace("[更新下载状态为下载完成]");
                 downloadHolder.downloadProgress.state = "下载完成";
                 if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
+                    logger.trace("[删除临时文件]");
                     for(Path subFile:downloadHolder.downloadProgress.subFileList){
                         Files.deleteIfExists(subFile);
                     }
@@ -263,9 +264,17 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             //m3u8格式不检查大小
             if(null==downloadHolder.response.contentEncoding()){
                 //开启了gzip压缩的情况下不检查
-                long contentLength = downloadHolder.response.contentLength();
-                if(contentLength>0&&contentLength!=Files.size(downloadHolder.file)){
-                    logger.warn("[文件大小不匹配]预期大小:{},实际大小:{}",downloadHolder.response.contentLength(),Files.size(downloadHolder.file));
+                long expectContentLength = downloadHolder.response.contentLength();
+                long actualFileSize = Files.size(downloadHolder.file);
+                if(expectContentLength>0&&expectContentLength!=actualFileSize){
+                    logger.warn("[文件大小不匹配]预期大小:{},实际大小:{}",expectContentLength,actualFileSize);
+                    //如果实际文件大小大于预期文件大小,则删除临时文件后重新下载
+                    if(actualFileSize>expectContentLength){
+                        logger.trace("[删除临时文件]文件实际大小大于预期大小,删除临时文件后重新下载");
+                        for(Path subFile:downloadHolder.downloadProgress.subFileList){
+                            Files.deleteIfExists(subFile);
+                        }
+                    }
                     return false;
                 }
             }

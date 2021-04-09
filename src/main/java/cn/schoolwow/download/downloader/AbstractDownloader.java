@@ -31,9 +31,6 @@ public abstract class AbstractDownloader implements Downloader{
             if(Files.notExists(subFile)){
                 throw new IOException("文件合并失败,分段文件不存在!路径:"+subFile.toString());
             }
-            if(!Files.isReadable(subFile)){
-                throw new IOException("文件合并失败,分段文件无法访问!路径:"+subFile.toString());
-            }
             mergeFileSize += Files.size(subFile);
         }
         //检查合并后文件大小是否相同
