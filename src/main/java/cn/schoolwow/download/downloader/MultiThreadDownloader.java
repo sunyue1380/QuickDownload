@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CountDownLatch;
 
 /**多线程下载*/
@@ -39,16 +40,27 @@ public class MultiThreadDownloader extends AbstractDownloader{
                     if (Files.size(subFile) == expectSize) {
                         return;
                     }
-                    int retryTimes = 1;
-                    while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
-                        Response subResponse = downloadHolder.downloadTask.request.clone()
-                                .ranges(start + Files.size(subFile), end)
-                                .execute();
-                        if(null!=subResponse){
-                            subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
+                    if(downloadHolder.poolConfig.debug){
+                        byte[] bytes = new byte[(int) expectSize];
+                        Files.write(subFile, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                        try {
+                            Thread.sleep(1000+Math.round(Math.random()*2000));
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
-                        retryTimes++;
+                    }else{
+                        int retryTimes = 1;
+                        while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
+                            Response subResponse = downloadHolder.downloadTask.request.clone()
+                                    .ranges(start + Files.size(subFile), end)
+                                    .execute();
+                            if(null!=subResponse){
+                                subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
+                            }
+                            retryTimes++;
+                        }
                     }
+
                     if(expectSize!=Files.size(subFile)){
                         logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}",
                                 expectSize,

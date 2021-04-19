@@ -15,6 +15,9 @@ import java.util.function.BiFunction;
 
 /**下载池配置项*/
 public class PoolConfig {
+    /**是否开启调试模式*/
+    public boolean debug;
+
     /**下载失败重试次数*/
     public int retryTimes = 3;
 

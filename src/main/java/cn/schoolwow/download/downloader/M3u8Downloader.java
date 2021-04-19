@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
@@ -47,7 +48,18 @@ public class M3u8Downloader extends AbstractDownloader{
                         downloadHolder.downloadProgress.totalFileSize += subResponse.contentLength();
                         long estimateTotalSize = downloadHolder.downloadProgress.totalFileSize/downloadHolder.downloadProgress.subFileList.length*mediaPlaylist.segmentList.size();
                         downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%d(%.2fMB)",mediaPlaylist.segmentList.size(),estimateTotalSize/1.0/1024/1024);
-                        subResponse.bodyAsFile(subFilePath);
+
+                        if(downloadHolder.poolConfig.debug){
+                            byte[] bytes = new byte[1048576];
+                            Files.write(subFilePath, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                            try {
+                                Thread.sleep(Math.round(Math.random()*1000));
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }else{
+                            subResponse.bodyAsFile(subFilePath);
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
