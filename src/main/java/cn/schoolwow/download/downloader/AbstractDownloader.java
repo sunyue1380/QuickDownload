@@ -33,11 +33,13 @@ public abstract class AbstractDownloader implements Downloader{
             }
             mergeFileSize += Files.size(subFile);
         }
-        //检查合并后文件大小是否相同
-        long contentLength = downloadHolder.response.contentLength();
-        if(null==downloadHolder.response.contentEncoding()&&contentLength>0&&mergeFileSize!=contentLength){
-            logger.warn("[文件大小不匹配]预期文件大小:{},实际合并文件大小:{}",contentLength,mergeFileSize);
-            return;
+        if(!downloadHolder.downloadTask.m3u8){
+            //检查合并后文件大小是否相同
+            long contentLength = downloadHolder.response.contentLength();
+            if(null==downloadHolder.response.contentEncoding()&&contentLength>0&&mergeFileSize!=contentLength){
+                logger.warn("[文件大小不匹配]预期文件大小:{},实际合并文件大小:{}",contentLength,mergeFileSize);
+                return;
+            }
         }
 
         Path file = downloadHolder.file;

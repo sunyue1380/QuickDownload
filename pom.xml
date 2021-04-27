@@ -6,7 +6,7 @@
 
     <groupId>cn.schoolwow</groupId>
     <artifactId>QuickDownload</artifactId>
-    <version>1.0.6.1</version>
+    <version>1.0.7-SNAPSHOT</version>
 
     <name>QuickDownload</name>
     <url>https://github.com/sunyue1380/QuickDownload</url>
