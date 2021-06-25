@@ -1,10 +1,10 @@
 package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
-import cn.schoolwow.download.domain.m3u8.MediaPlaylist;
-import cn.schoolwow.download.domain.m3u8.tag.SEGMENT;
-import cn.schoolwow.download.util.QuickDownloadUtil;
+import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
+import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
 import cn.schoolwow.quickhttp.response.Response;
+import cn.schoolwow.quickhttp.util.M3u8Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,23 +12,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
 /**m3u8格式视频下载*/
 public class M3u8Downloader extends AbstractDownloader{
 
     @Override
-    public void download(DownloadHolder downloadHolder) throws IOException {
+    public void download(DownloadHolder downloadHolder) throws Exception {
         downloadHolder.downloadProgress.m3u8 = true;
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
+        if(!M3u8Type.MediaPlayList.equals(M3u8Util.getM3u8Type(downloadHolder.response.body()))){
+            throw new IllegalArgumentException("m3u8地址不是媒体播放列表!m3u8地址:"+downloadHolder.response.url());
+        }
 
-        MediaPlaylist mediaPlaylist = getMediaPlaylist(downloadHolder.response);
+        MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(downloadHolder.response.url(),downloadHolder.response.body());
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         int per = mediaPlaylist.segmentList.size()/maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[mediaPlaylist.segmentList.size()];
         for(int i=0;i<mediaPlaylist.segmentList.size();i++){
-            downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +mediaPlaylist.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
+            downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +downloadHolder.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
         }
         for(int i=0;i<maxThreadConnection;i++){
             final int start = i*per;
@@ -68,21 +70,5 @@ public class M3u8Downloader extends AbstractDownloader{
             });
         }
         mergeSubFileList(downloadHolder,countDownLatch);
-    }
-
-    private MediaPlaylist getMediaPlaylist(Response response) throws IOException {
-        Path tempPath = Files.createTempFile("QuickDownload",".m3u8");
-        response.bodyAsFile(tempPath);
-        Iterator<String> iterable = Files.lines(tempPath).iterator();
-        Files.deleteIfExists(tempPath);
-        MediaPlaylist mediaPlaylist = QuickDownloadUtil.getMediaPlaylist(iterable);
-        String relativePath = response.url().substring(0,response.url().lastIndexOf("/")+1);
-        for(SEGMENT segment:mediaPlaylist.segmentList){
-            if(!segment.URI.startsWith("http")){
-                segment.URI = relativePath + segment.URI;
-            }
-        }
-        mediaPlaylist.response = response;
-        return mediaPlaylist;
     }
 }
