@@ -192,15 +192,15 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
                     ||downloadHolder.response.url().endsWith(".m3u")
                     ||downloadHolder.response.url().endsWith(".m3u8")
             ){
-                logger.debug("[下载类型为m3u8下载]");
+                logger.info("[下载类型为m3u8下载]");
                 downloadHolder.downloadTask.m3u8 = true;
                 downloadHolder.downloadProgress.m3u8 = true;
                 DownloaderEnum.M3u8.download(downloadHolder);
             }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread||!downloadHolder.response.acceptRanges()){
-                logger.debug("[下载类型为单线程下载]");
+                logger.info("[下载类型为单线程下载]");
                 DownloaderEnum.SingleThread.download(downloadHolder);
             }else{
-                logger.debug("[下载类型为多线程下载]");
+                logger.info("[下载类型为多线程下载]");
                 DownloaderEnum.MultiThread.download(downloadHolder);
             }
             if(isFileIntegrityPass(downloadHolder)){

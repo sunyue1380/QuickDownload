@@ -3,6 +3,8 @@ package cn.schoolwow.download.pool;
 import cn.schoolwow.download.domain.PoolConfig;
 import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.quickhttp.response.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,16 +13,11 @@ import java.nio.file.Paths;
 import java.util.function.BiFunction;
 
 public class DownloadPoolConfigImpl implements DownloadPoolConfig{
+    private Logger logger = LoggerFactory.getLogger(DownloadPoolConfigImpl.class);
     private PoolConfig poolConfig;
 
     public DownloadPoolConfigImpl(PoolConfig poolConfig) {
         this.poolConfig = poolConfig;
-    }
-
-    @Override
-    public DownloadPoolConfig debug(boolean debug) {
-        poolConfig.debug = debug;
-        return this;
     }
 
     /**

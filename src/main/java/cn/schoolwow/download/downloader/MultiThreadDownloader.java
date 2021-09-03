@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CountDownLatch;
 
 /**多线程下载*/
@@ -24,6 +23,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         long contentLength = downloadHolder.response.contentLength();
+        logger.info("[多线程下载]总大小:{},保存路径:{}",contentLength,downloadHolder.file);
         long per = contentLength / maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[maxThreadConnection];
         for (int i = 0; i < maxThreadConnection; i++) {
@@ -38,35 +38,26 @@ public class MultiThreadDownloader extends AbstractDownloader{
                         Files.createFile(subFile);
                     }
                     if (Files.size(subFile) == expectSize) {
+                        logger.info("[分段文件已经存在且下载完成]大小:{},路径:{}",expectSize,subFile);
                         return;
                     }
-                    if(downloadHolder.poolConfig.debug){
-                        byte[] bytes = new byte[(int) expectSize];
-                        Files.write(subFile, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                        try {
-                            Thread.sleep(1000+Math.round(Math.random()*2000));
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                    int retryTimes = 1;
+                    while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
+                        Response subResponse = downloadHolder.downloadTask.request.clone()
+                                .ranges(start + Files.size(subFile), end)
+                                .execute();
+                        if(null!=subResponse){
+                            subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
                         }
-                    }else{
-                        int retryTimes = 1;
-                        while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
-                            Response subResponse = downloadHolder.downloadTask.request.clone()
-                                    .ranges(start + Files.size(subFile), end)
-                                    .execute();
-                            if(null!=subResponse){
-                                subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
-                            }
-                            retryTimes++;
+                        if(Files.size(subFile)<expectSize){
+                            logger.warn("[分段文件下载不完整]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
                         }
+                        retryTimes++;
                     }
-
                     if(expectSize!=Files.size(subFile)){
-                        logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}",
-                                expectSize,
-                                Files.size(subFile),
-                                subFile
-                        );
+                        logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
+                    }else{
+                        logger.info("[分段文件下载完成]当前大小:{},路径:{}",expectSize,subFile);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

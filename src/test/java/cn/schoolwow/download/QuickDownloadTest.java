@@ -75,7 +75,6 @@ public class QuickDownloadTest {
         Files.deleteIfExists(filePath);
         downloadTask.filePath = filePath.toString();
         downloadTask.request = QuickHttp.connect("/LICENSE");
-        QuickDownload.downloadPoolConfig().debug(true);
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);

@@ -5,17 +5,19 @@ import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
 import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
 import cn.schoolwow.quickhttp.response.Response;
 import cn.schoolwow.quickhttp.util.M3u8Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CountDownLatch;
 
 /**m3u8格式视频下载*/
 public class M3u8Downloader extends AbstractDownloader{
+    private Logger logger = LoggerFactory.getLogger(M3u8Downloader.class);
 
     @Override
     public void download(DownloadHolder downloadHolder) throws Exception {
@@ -40,6 +42,7 @@ public class M3u8Downloader extends AbstractDownloader{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
                     if(Files.exists(subFilePath)){
+                        logger.debug("[分段文件已存在]路径:{}",subFilePath);
                         continue;
                     }
                     try {
@@ -50,18 +53,8 @@ public class M3u8Downloader extends AbstractDownloader{
                         downloadHolder.downloadProgress.totalFileSize += subResponse.contentLength();
                         long estimateTotalSize = downloadHolder.downloadProgress.totalFileSize/downloadHolder.downloadProgress.subFileList.length*mediaPlaylist.segmentList.size();
                         downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%d(%.2fMB)",mediaPlaylist.segmentList.size(),estimateTotalSize/1.0/1024/1024);
-
-                        if(downloadHolder.poolConfig.debug){
-                            byte[] bytes = new byte[1048576];
-                            Files.write(subFilePath, bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                            try {
-                                Thread.sleep(Math.round(Math.random()*1000));
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }else{
-                            subResponse.bodyAsFile(subFilePath);
-                        }
+                        subResponse.bodyAsFile(subFilePath);
+                        logger.debug("[m3u8分段文件下载完成]大小:{},路径:{}",Files.size(subFilePath),subFilePath);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

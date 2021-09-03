@@ -9,12 +9,6 @@ import java.util.function.BiFunction;
 
 public interface DownloadPoolConfig {
     /**
-     * 是否开启调试模式
-     * @param debug 是否开启调试模式
-     * */
-    DownloadPoolConfig debug(boolean debug);
-
-    /**
      * 指定临时文件目录
      * @param temporaryDirectoryPath 临时文件目录
      * */

@@ -55,5 +55,6 @@ public abstract class AbstractDownloader implements Downloader{
             currentSize += Files.size(subFile);
         }
         fileChannel.close();
+        logger.info("[合并文件完成]大小:{},合并文件路径:{}",Files.size(downloadHolder.file),downloadHolder.file);
     }
 }
