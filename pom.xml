@@ -114,29 +114,23 @@
             <repositories>
                 <repository>
                     <id>schoolwow</id>
-                    <name>SchoolWow</name>
-                    <url>http://maven.schoolwow.cn/repository/public/</url>
+                    <url>http://maven.schoolwow.cn:8081/repository/maven-public/</url>
                     <releases>
                         <enabled>true</enabled>
-                        <checksumPolicy>ignore</checksumPolicy>
                     </releases>
                     <snapshots>
                         <enabled>true</enabled>
-                        <!--默认每隔6小时检查快照版本-->
-                        <updatePolicy>interval:360</updatePolicy>
-                        <checksumPolicy>ignore</checksumPolicy>
                     </snapshots>
                 </repository>
             </repositories>
-
             <distributionManagement>
                 <repository>
                     <id>schoolwow</id>
-                    <url>http://maven.schoolwow.cn/deploy</url>
+                    <url>http://maven.schoolwow.cn:8081/repository/maven-releases/</url>
                 </repository>
                 <snapshotRepository>
                     <id>schoolwow</id>
-                    <url>http://maven.schoolwow.cn/deploy</url>
+                    <url>http://maven.schoolwow.cn:8081/repository/maven-snapshots/</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
