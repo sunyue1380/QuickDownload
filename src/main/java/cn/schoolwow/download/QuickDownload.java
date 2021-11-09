@@ -43,7 +43,7 @@ public class QuickDownload {
      * 下载任务
      * @param downloadTasks 下载任务
      * */
-    public static void download(DownloadTask... downloadTasks) throws IOException{
+    public static void download(DownloadTask... downloadTasks){
         downloadPool.download(downloadTasks);
     }
 
@@ -52,7 +52,7 @@ public class QuickDownload {
      * @param downloadFinished 指定下载任务列表完成后执行
      * @param downloadTasks 下载任务
      * */
-    public static void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks) throws IOException{
+    public static void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks){
         downloadPool.download(downloadFinished,downloadTasks);
     }
 

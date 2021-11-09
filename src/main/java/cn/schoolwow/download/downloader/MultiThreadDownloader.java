@@ -57,7 +57,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
                     if(expectSize!=Files.size(subFile)){
                         logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
                     }else{
-                        logger.info("[分段文件下载完成]当前大小:{},路径:{}",expectSize,subFile);
+                        logger.debug("[分段文件下载完成]当前大小:{},路径:{}",expectSize,subFile);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

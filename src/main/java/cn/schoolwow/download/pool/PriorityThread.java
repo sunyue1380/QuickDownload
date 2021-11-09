@@ -150,7 +150,7 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             retryTimes++;
         }
         if(retryTimes>=poolConfig.retryTimes||Files.notExists(downloadHolder.file)){
-            logger.warn("[下载失败]");
+            logger.warn("[下载失败]文件路径:{}",downloadHolder.file);
         }else{
             logger.info("[文件下载完成]大小:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024));
         }

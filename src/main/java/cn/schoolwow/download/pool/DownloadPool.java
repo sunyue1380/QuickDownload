@@ -29,12 +29,12 @@ public interface DownloadPool {
      * 下载任务
      * @param downloadTasks 下载任务
      * */
-    void download(DownloadTask... downloadTasks) throws IOException;
+    void download(DownloadTask... downloadTasks);
 
     /**
      * 下载任务
      * @param downloadFinished 指定下载任务列表完成后执行
      * @param downloadTasks 下载任务
      * */
-    void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks) throws IOException;
+    void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks);
 }

@@ -109,7 +109,7 @@ public class DownloadPoolImpl implements DownloadPool{
     }
 
     @Override
-    public void download(DownloadTask... downloadTasks) throws IOException {
+    public void download(DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
             logger.warn("[下载任务数组为空]");
             return;
@@ -125,7 +125,7 @@ public class DownloadPoolImpl implements DownloadPool{
     }
 
     @Override
-    public void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks) throws IOException {
+    public void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
             logger.warn("[下载任务数组为空]");
             return;
