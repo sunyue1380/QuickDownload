@@ -45,6 +45,9 @@ public class PoolConfig {
     /**线程池事件监听接口*/
     public List<DownloadPoolListener> downloadPoolListenerList = new ArrayList<>();
 
+    /**下载日志文件夹路径*/
+    public String logDirectoryPath;
+
     /**下载任务调度线程池*/
     public ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),

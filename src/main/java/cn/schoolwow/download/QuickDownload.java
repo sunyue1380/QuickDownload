@@ -6,7 +6,6 @@ import cn.schoolwow.download.pool.DownloadPool;
 import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.download.pool.DownloadPoolImpl;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;

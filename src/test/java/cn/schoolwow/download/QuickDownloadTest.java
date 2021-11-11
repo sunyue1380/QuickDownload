@@ -1,8 +1,11 @@
 package cn.schoolwow.download;
 
 import cn.schoolwow.download.domain.DownloadTask;
+import cn.schoolwow.download.listener.SimpleDownloadPoolListener;
+import cn.schoolwow.download.pool.DownloadPool;
 import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.quickhttp.QuickHttp;
+import cn.schoolwow.quickhttp.response.Response;
 import cn.schoolwow.quickserver.QuickServer;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,11 +34,12 @@ public class QuickDownloadTest {
     @Test
     public void singleDownload() throws IOException {
         DownloadTask downloadTask = new DownloadTask();
-        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
+        Path tempFilePath = Files.createTempFile("QuickDownload.",".LICENSE");
         Files.deleteIfExists(tempFilePath);
         downloadTask.filePath = tempFilePath.toString();
         downloadTask.request = QuickHttp.connect("/LICENSE");
         downloadTask.singleThread = true;
+        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleDownload_" + System.currentTimeMillis()+".txt";
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);
@@ -56,6 +60,7 @@ public class QuickDownloadTest {
         downloadTask.filePath = tempFilePath.toString();
         downloadTask.requestSupplier = ()->QuickHttp.connect("/LICENSE");
         downloadTask.singleThread = true;
+        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleSupplierDownload_" + System.currentTimeMillis()+".txt";
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);
@@ -75,6 +80,7 @@ public class QuickDownloadTest {
         Files.deleteIfExists(filePath);
         downloadTask.filePath = filePath.toString();
         downloadTask.request = QuickHttp.connect("/LICENSE");
+        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/multiDownload_" + System.currentTimeMillis()+".txt";
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);
@@ -128,6 +134,41 @@ public class QuickDownloadTest {
                     return FileVisitResult.CONTINUE;
                 }
             });
+        }
+    }
+
+    @Test
+    public void multiDownloadTaskDownload() throws IOException {
+        DownloadPool downloadPool = QuickDownload.newDownloadPool();
+        downloadPool.downloadPoolConfig().logDirectoryPath(System.getProperty("user.dir")+"/logs");
+        Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
+        downloadPool.downloadPoolConfig().downloadPoolListener(new SimpleDownloadPoolListener() {
+            @Override
+            public void downloadFinished(Response response, Path file) {
+                try {
+                    Assert.assertEquals(Files.size(path),Files.size(file));
+                    Files.deleteIfExists(file);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        for(int i=0;i<3;i++){
+            DownloadTask downloadTask = new DownloadTask();
+            Path tempFilePath = Files.createTempFile("QuickDownload.",".LICENSE");
+            Files.deleteIfExists(tempFilePath);
+            downloadTask.filePath = tempFilePath.toString();
+            downloadTask.request = QuickHttp.connect("/LICENSE");
+            downloadTask.singleThread = true;
+            downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleDownload_" + System.currentTimeMillis()+".txt";
+            downloadPool.download(downloadTask);
+        }
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }

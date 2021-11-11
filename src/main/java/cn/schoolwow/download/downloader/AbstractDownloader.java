@@ -1,8 +1,7 @@
 package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cn.schoolwow.quickhttp.domain.LogLevel;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -13,7 +12,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractDownloader implements Downloader{
-    private static Logger logger = LoggerFactory.getLogger(AbstractDownloader.class);
     /**
      * 合并分段文件
      * @param downloadHolder 下载任务
@@ -26,9 +24,11 @@ public abstract class AbstractDownloader implements Downloader{
             e.printStackTrace();
         }
         //检查是否可以合并
+        downloadHolder.log(LogLevel.TRACE,"[检查文件是可以合并]");
         long mergeFileSize = 0;
         for(Path subFile:downloadHolder.downloadProgress.subFileList){
             if(Files.notExists(subFile)){
+                downloadHolder.log(LogLevel.TRACE,"[文件合并失败]分段文件不存在,路径:{}",subFile);
                 throw new IOException("文件合并失败,分段文件不存在!路径:"+subFile.toString());
             }
             mergeFileSize += Files.size(subFile);
@@ -37,7 +37,7 @@ public abstract class AbstractDownloader implements Downloader{
             //检查合并后文件大小是否相同
             long contentLength = downloadHolder.response.contentLength();
             if(null==downloadHolder.response.contentEncoding()&&contentLength>0&&mergeFileSize!=contentLength){
-                logger.warn("[文件大小不匹配]预期文件大小:{},实际合并文件大小:{}",contentLength,mergeFileSize);
+                downloadHolder.log(LogLevel.WARN,"[文件大小不匹配]预期文件大小:{},实际合并文件大小:{}",contentLength,mergeFileSize);
                 return;
             }
         }
@@ -55,6 +55,6 @@ public abstract class AbstractDownloader implements Downloader{
             currentSize += Files.size(subFile);
         }
         fileChannel.close();
-        logger.info("[合并文件完成]大小:{},合并文件路径:{}",Files.size(downloadHolder.file),downloadHolder.file);
+        downloadHolder.log(LogLevel.INFO,"[合并文件完成]大小:{},合并文件路径:{}",Files.size(downloadHolder.file),downloadHolder.file);
     }
 }

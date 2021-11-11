@@ -146,6 +146,12 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     }
 
     @Override
+    public DownloadPoolConfig logDirectoryPath(String logDirectoryPath) {
+        poolConfig.logDirectoryPath = logDirectoryPath;
+        return this;
+    }
+
+    @Override
     public PoolConfig getPoolConfig() {
         return this.poolConfig;
     }

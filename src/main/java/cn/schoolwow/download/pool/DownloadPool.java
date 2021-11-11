@@ -3,7 +3,6 @@ package cn.schoolwow.download.pool;
 import cn.schoolwow.download.domain.DownloadProgress;
 import cn.schoolwow.download.domain.DownloadTask;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;

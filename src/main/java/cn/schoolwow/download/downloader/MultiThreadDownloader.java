@@ -1,9 +1,8 @@
 package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
+import cn.schoolwow.quickhttp.domain.LogLevel;
 import cn.schoolwow.quickhttp.response.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +13,6 @@ import java.util.concurrent.CountDownLatch;
 
 /**多线程下载*/
 public class MultiThreadDownloader extends AbstractDownloader{
-    private static Logger logger = LoggerFactory.getLogger(MultiThreadDownloader.class);
-
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException {
         downloadHolder.response.disconnect();
@@ -23,7 +20,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         long contentLength = downloadHolder.response.contentLength();
-        logger.info("[多线程下载]总大小:{},保存路径:{}",contentLength,downloadHolder.file);
+        downloadHolder.log(LogLevel.INFO,"[多线程下载]总大小:{},保存路径:{}",contentLength,downloadHolder.file);
         long per = contentLength / maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[maxThreadConnection];
         for (int i = 0; i < maxThreadConnection; i++) {
@@ -33,36 +30,56 @@ public class MultiThreadDownloader extends AbstractDownloader{
             final Path subFile = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "[" + i + "]." + contentLength + "." + downloadHolder.file.getFileName().toString());
             downloadHolder.downloadProgress.subFileList[i] = subFile;
             downloadHolder.poolConfig.downloadThreadPoolExecutor.execute(() -> {
+                Response subResponse = null;
+                Path tempLogFilePath = null;
                 try {
                     if (!Files.exists(subFile)) {
                         Files.createFile(subFile);
                     }
                     if (Files.size(subFile) == expectSize) {
-                        logger.info("[分段文件已经存在且下载完成]大小:{},路径:{}",expectSize,subFile);
+                        downloadHolder.log(LogLevel.INFO,"[分段文件已经存在且下载完成]大小:{},路径:{}", expectSize,subFile);
                         return;
                     }
+                    downloadHolder.log(LogLevel.INFO,"[准备下载分段文件]路径:{}", subFile);
+
+                    tempLogFilePath = Files.createTempFile("QuickHttp.","response");
                     int retryTimes = 1;
                     while (Files.size(subFile) < expectSize && retryTimes <= downloadHolder.poolConfig.retryTimes) {
-                        Response subResponse = downloadHolder.downloadTask.request.clone()
+                        subResponse = downloadHolder.downloadTask.request.clone()
                                 .ranges(start + Files.size(subFile), end)
+                                .logFilePath(tempLogFilePath.toString())
                                 .execute();
                         if(null!=subResponse){
                             subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
                         }
                         if(Files.size(subFile)<expectSize){
-                            logger.warn("[分段文件下载不完整]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
+                            downloadHolder.log(LogLevel.WARN,"[分段文件下载不完整]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
                         }
                         retryTimes++;
                     }
                     if(expectSize!=Files.size(subFile)){
-                        logger.warn("[分段文件下载异常]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
+                        downloadHolder.log(LogLevel.WARN,"[分段文件下载异常]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);
                     }else{
-                        logger.debug("[分段文件下载完成]当前大小:{},路径:{}",expectSize,subFile);
+                        downloadHolder.log(LogLevel.DEBUG,"[分段文件下载完成]当前大小:{},路径:{}",expectSize,subFile);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                    downloadHolder.log(LogLevel.WARN,"[多线程分段文件下载失败]路径:{}", subFile);
+                    if(null!=subResponse){
+                        downloadHolder.appendLog(subResponse.logFilePath());
+                    }
+                    synchronized (downloadHolder){
+                        e.printStackTrace(downloadHolder.pw);
+                    }
                 } finally {
                     countDownLatch.countDown();
+                    if(null!=tempLogFilePath){
+                        try {
+                            Files.deleteIfExists(tempLogFilePath);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             });
         }
