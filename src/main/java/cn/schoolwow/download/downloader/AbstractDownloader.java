@@ -2,6 +2,8 @@ package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
 import cn.schoolwow.quickhttp.domain.LogLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -9,9 +11,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractDownloader implements Downloader{
+    private Logger logger = LoggerFactory.getLogger(AbstractDownloader.class);
+
+    /**子下载线程*/
+    protected Future[] downloadThreadFutures;
+
     /**
      * 合并分段文件
      * @param downloadHolder 下载任务
@@ -21,7 +29,14 @@ public abstract class AbstractDownloader implements Downloader{
         try {
             countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.warn("[线程中断]停止下载文件");
+            Thread.currentThread().interrupt();
+            if(null!=downloadThreadFutures){
+                for(Future future:downloadThreadFutures){
+                    future.cancel(true);
+                }
+            }
+            return;
         }
         //检查是否可以合并
         downloadHolder.log(LogLevel.TRACE,"[检查文件是可以合并]");

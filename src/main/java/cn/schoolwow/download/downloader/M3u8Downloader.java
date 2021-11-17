@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 /**m3u8格式视频下载*/
 public class M3u8Downloader extends AbstractDownloader{
@@ -32,11 +33,12 @@ public class M3u8Downloader extends AbstractDownloader{
         for(int i=0;i<mediaPlaylist.segmentList.size();i++){
             downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +downloadHolder.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
         }
+        super.downloadThreadFutures = new Future[maxThreadConnection];
         for(int i=0;i<maxThreadConnection;i++){
             final int start = i*per;
             final int end = (i==maxThreadConnection-1)?mediaPlaylist.segmentList.size()-1:((i+1)*per-1);
 
-            downloadHolder.poolConfig.downloadThreadPoolExecutor.execute(()->{
+            super.downloadThreadFutures[i] = downloadHolder.poolConfig.downloadThreadPoolExecutor.submit(()->{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
                     if(Files.exists(subFilePath)){
@@ -49,6 +51,9 @@ public class M3u8Downloader extends AbstractDownloader{
                                 .url(mediaPlaylist.segmentList.get(j).URI)
                                 .retryTimes(3)
                                 .execute();
+                        if(Thread.currentThread().isInterrupted()){
+                            return;
+                        }
                         downloadHolder.downloadProgress.totalFileSize += subResponse.contentLength();
                         long estimateTotalSize = downloadHolder.downloadProgress.totalFileSize/downloadHolder.downloadProgress.subFileList.length*mediaPlaylist.segmentList.size();
                         downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%d(%.2fMB)",mediaPlaylist.segmentList.size(),estimateTotalSize/1.0/1024/1024);

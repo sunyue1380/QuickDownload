@@ -10,11 +10,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 
 public class DownloadHolder {
@@ -57,10 +56,12 @@ public class DownloadHolder {
     }
 
     public synchronized void appendLog(String logFilePath){
-        byte[] bytes = new byte[0];
         try {
-            bytes = Files.readAllBytes(Paths.get(logFilePath));
-            pw.write(new String(bytes));
+            Scanner scanner = new Scanner(new File(logFilePath));
+            while(scanner.hasNextLine()){
+                pw.write(scanner.nextLine()+"\n");
+            }
+            scanner.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

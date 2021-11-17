@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 /**多线程下载*/
 public class MultiThreadDownloader extends AbstractDownloader{
@@ -23,13 +24,14 @@ public class MultiThreadDownloader extends AbstractDownloader{
         downloadHolder.log(LogLevel.INFO,"[多线程下载]总大小:{},保存路径:{}",contentLength,downloadHolder.file);
         long per = contentLength / maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[maxThreadConnection];
+        super.downloadThreadFutures = new Future[maxThreadConnection];
         for (int i = 0; i < maxThreadConnection; i++) {
             final long start = i * per;
             final long end = (i == maxThreadConnection - 1) ? contentLength - 1 : ((i + 1) * per - 1);
             final long expectSize = (end-start+1);
             final Path subFile = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "[" + i + "]." + contentLength + "." + downloadHolder.file.getFileName().toString());
             downloadHolder.downloadProgress.subFileList[i] = subFile;
-            downloadHolder.poolConfig.downloadThreadPoolExecutor.execute(() -> {
+            super.downloadThreadFutures[i] = downloadHolder.poolConfig.downloadThreadPoolExecutor.submit(() -> {
                 Response subResponse = null;
                 Path tempLogFilePath = null;
                 try {
@@ -51,6 +53,9 @@ public class MultiThreadDownloader extends AbstractDownloader{
                                 .execute();
                         if(null!=subResponse){
                             subResponse.maxDownloadSpeed(maxDownloadSpeed/maxThreadConnection).bodyAsFile(subFile);
+                        }
+                        if(Thread.currentThread().isInterrupted()){
+                            return;
                         }
                         if(Files.size(subFile)<expectSize){
                             downloadHolder.log(LogLevel.WARN,"[分段文件下载不完整]预期大小:{},当前大小:{},路径:{}", expectSize, Files.size(subFile), subFile);

@@ -120,7 +120,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 continue;
             }
             logger.trace("[添加下载任务到线程池]{}",downloadTask);
-            poolConfig.threadPoolExecutor.execute(downloadHolder.priorityThread);
+            downloadTask.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
         }
     }
 
@@ -139,7 +139,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 continue;
             }
             downloadHolders[i].countDownLatch = countDownLatch;
-            poolConfig.threadPoolExecutor.execute(downloadHolders[i].priorityThread);
+            downloadTasks[i].downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolders[i].priorityThread);
         }
         poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
             try {

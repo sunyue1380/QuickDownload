@@ -22,6 +22,7 @@ public class QuickDownloadTest {
             try {
                 QuickServer.newInstance()
                         .staticResourcePath(System.getProperty("user.dir"))
+                        .maxLimitSpeed(128)
                         .port(10002)
                         .start();
             } catch (IOException e) {
@@ -74,6 +75,28 @@ public class QuickDownloadTest {
     }
 
     @Test
+    public void singleDownloadStopDownload() throws IOException {
+        String filePath = System.getProperty("user.dir") + "/download/bigFile";
+        Path path = Paths.get(filePath);
+        Files.deleteIfExists(path);
+
+        DownloadTask downloadTask = new DownloadTask();
+        downloadTask.filePath = filePath;
+        downloadTask.request = QuickHttp.connect("/bigFile");
+        downloadTask.singleThread = true;
+        QuickDownload.download(downloadTask);
+        try {
+            Thread.sleep(500);
+            Assert.assertTrue(Files.notExists(path));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            Files.deleteIfExists(path);
+        }
+    }
+
+
+    @Test
     public void multiDownload() throws IOException {
         DownloadTask downloadTask = new DownloadTask();
         Path filePath = Paths.get(System.getProperty("user.dir")+"/LICENSE_Test");
@@ -84,12 +107,35 @@ public class QuickDownloadTest {
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);
+            downloadTask.stopDownload();
             Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
             Assert.assertEquals(Files.size(path),Files.size(filePath));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }finally {
             Files.deleteIfExists(filePath);
+        }
+    }
+
+    @Test
+    public void multiDownloadStopDownload() throws IOException {
+        String filePath = System.getProperty("user.dir") + "/download/bigFile";
+        Path path = Paths.get(filePath);
+        Files.deleteIfExists(path);
+
+        DownloadTask downloadTask = new DownloadTask();
+        downloadTask.filePath = filePath;
+        downloadTask.request = QuickHttp.connect("/bigFile");
+        QuickDownload.downloadPoolConfig().maxThreadConnection(4);
+        QuickDownload.download(downloadTask);
+        try {
+            Thread.sleep(500);
+            downloadTask.stopDownload();
+            Assert.assertTrue(Files.notExists(path));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            Files.deleteIfExists(path);
         }
     }
 

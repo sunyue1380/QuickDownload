@@ -7,6 +7,7 @@ import cn.schoolwow.quickhttp.response.Response;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -51,6 +52,9 @@ public class DownloadTask implements Comparable<DownloadTask>{
     /**下载日志文件路径*/
     public String downloadLogFilePath;
 
+    /**任务线程*/
+    public Future downloadThreadFuture;
+
     @Override
     public int compareTo(DownloadTask downloadTask) {
         if(this.priority<downloadTask.priority){
@@ -59,6 +63,13 @@ public class DownloadTask implements Comparable<DownloadTask>{
             return 1;
         }else{
             return 0;
+        }
+    }
+
+    /**停止下载*/
+    public void stopDownload(){
+        if(null!=downloadThreadFuture){
+            downloadThreadFuture.cancel(true);
         }
     }
 }

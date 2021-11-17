@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * 优先级下载线程
  * */
-public class PriorityThread implements Runnable,Comparable<PriorityThread>{
+public class PriorityThread implements Runnable, Comparable<PriorityThread>{
     private Logger logger = LoggerFactory.getLogger(PriorityThread.class);
 
     /**线程池配置信息*/
@@ -163,6 +163,10 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
         //开始正式下载
         int retryTimes = 1;
         while(retryTimes<=poolConfig.retryTimes&&!startDownload(downloadHolder)){
+            if(Thread.currentThread().isInterrupted()){
+                logger.warn("[用户停止下载任务]下载任务保存路径:{}",downloadHolder.file);
+                return;
+            }
             downloadHolder.log(LogLevel.WARN,"[下载失败]重试{}/{}次",retryTimes,downloadHolder.poolConfig.retryTimes);
             retryTimes++;
         }
@@ -219,6 +223,9 @@ public class PriorityThread implements Runnable,Comparable<PriorityThread>{
             }else{
                 downloadHolder.log(LogLevel.INFO,"[下载类型为多线程下载]");
                 DownloaderEnum.MultiThread.download(downloadHolder);
+            }
+            if(Thread.currentThread().isInterrupted()){
+                return false;
             }
             if(isFileIntegrityPass(downloadHolder)){
                 downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载完成]");
