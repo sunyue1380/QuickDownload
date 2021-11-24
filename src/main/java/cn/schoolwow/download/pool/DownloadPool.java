@@ -1,5 +1,6 @@
 package cn.schoolwow.download.pool;
 
+import cn.schoolwow.download.domain.DownloadFuture;
 import cn.schoolwow.download.domain.DownloadProgress;
 import cn.schoolwow.download.domain.DownloadTask;
 
@@ -27,8 +28,9 @@ public interface DownloadPool {
     /**
      * 下载任务
      * @param downloadTasks 下载任务
+     * @return 下载任务令牌(可用于中断任务等)
      * */
-    void download(DownloadTask... downloadTasks);
+    DownloadFuture[] download(DownloadTask... downloadTasks);
 
     /**
      * 下载任务

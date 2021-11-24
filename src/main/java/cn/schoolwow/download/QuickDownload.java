@@ -1,5 +1,6 @@
 package cn.schoolwow.download;
 
+import cn.schoolwow.download.domain.DownloadFuture;
 import cn.schoolwow.download.domain.DownloadProgress;
 import cn.schoolwow.download.domain.DownloadTask;
 import cn.schoolwow.download.pool.DownloadPool;
@@ -42,8 +43,8 @@ public class QuickDownload {
      * 下载任务
      * @param downloadTasks 下载任务
      * */
-    public static void download(DownloadTask... downloadTasks){
-        downloadPool.download(downloadTasks);
+    public static DownloadFuture[] download(DownloadTask... downloadTasks){
+        return downloadPool.download(downloadTasks);
     }
 
     /**

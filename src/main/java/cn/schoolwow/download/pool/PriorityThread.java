@@ -71,11 +71,16 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             }catch (Exception e){
                 e.printStackTrace();
             }
-            //从下载进度表移除
-            downloadHolderListLock.lock();
-            downloadHolderList.remove(downloadHolder);
-            downloadHolderListLock.unlock();
-
+            if(Thread.currentThread().isInterrupted()){
+                downloadHolder.downloadProgress.state = "下载中断";
+                downloadHolder.response.disconnect();
+                downloadHolder.response = null;
+            }else{
+                //从下载进度表移除
+                downloadHolderListLock.lock();
+                downloadHolderList.remove(downloadHolder);
+                downloadHolderListLock.unlock();
+            }
             if(null!=downloadHolder.countDownLatch){
                 downloadHolder.countDownLatch.countDown();
             }
@@ -119,9 +124,6 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             }
         }
 
-        downloadHolder.log(LogLevel.TRACE,"[更新下载状态为准备下载]");
-        downloadHolder.downloadProgress.state = "准备下载";
-
         if(null!=downloadHolder.downloadTask.requestSupplier){
             downloadHolder.log(LogLevel.TRACE,"[获取延时下载任务]");
             downloadHolder.downloadTask.request = downloadHolder.downloadTask.requestSupplier.get();
@@ -130,7 +132,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             downloadHolder.log(LogLevel.WARN,"[下载链接为空]");
             return;
         }
-        if(isDownloadTaskExist(downloadHolder)){
+        if("等待下载".equals(downloadHolder.downloadProgress.state)&&isDownloadTaskExist(downloadHolder)){
             downloadHolder.log(LogLevel.WARN,"[下载任务已经存在]");
             return;
         }
@@ -159,7 +161,8 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
                 return;
             }
         }
-        downloadHolder.log(LogLevel.TRACE,"[开始正式下载]");
+        downloadHolder.log(LogLevel.TRACE,"[更新下载状态为开始下载]");
+        downloadHolder.downloadProgress.state = "开始下载";
         //开始正式下载
         int retryTimes = 1;
         while(retryTimes<=poolConfig.retryTimes&&!startDownload(downloadHolder)){
@@ -227,7 +230,8 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             if(Thread.currentThread().isInterrupted()){
                 return false;
             }
-            if(isFileIntegrityPass(downloadHolder)){
+            String fileIntegrityResult = isFileIntegrityPass(downloadHolder);
+            if(null==fileIntegrityResult){
                 downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载完成]");
                 downloadHolder.downloadProgress.state = "下载完成";
                 if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
@@ -247,7 +251,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             }else{
                 downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载失败]");
                 downloadHolder.downloadProgress.state = "下载失败";
-                IOException exception = new IOException("文件完整性校验失败!");
+                IOException exception = new IOException("文件完整性校验失败!"+fileIntegrityResult);
                 downloadHolder.log(LogLevel.TRACE,"[执行downloadFail事件]");
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                     downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
@@ -278,11 +282,11 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
      * @param downloadHolder 下载任务
      * @return 文件完整性校验结果
      * */
-    private boolean isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
+    private String isFileIntegrityPass(DownloadHolder downloadHolder) throws IOException {
         downloadHolder.log(LogLevel.TRACE,"[执行文件完整性校验函数]");
         if(Files.notExists(downloadHolder.file)){
             downloadHolder.log(LogLevel.WARN,"[文件完整性校验]文件不存在,路径:{}",downloadHolder.file);
-            return false;
+            return "文件不存在,路径:"+downloadHolder.file;
         }
         if(!downloadHolder.downloadTask.m3u8){
             //m3u8格式不检查大小
@@ -299,20 +303,20 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
                             Files.deleteIfExists(subFile);
                         }
                     }
-                    return false;
+                    return "文件大小不匹配!预期大小:"+expectContentLength+",实际大小:"+actualFileSize;
                 }
             }
         }
         if(null!=downloadHolder.downloadTask.fileIntegrityChecker&&!downloadHolder.downloadTask.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
             downloadHolder.log(LogLevel.WARN,"[下载任务文件完整性校验函数未通过]");
-            return false;
+            return "下载任务文件完整性校验函数未通过";
         }
         if(null!=poolConfig.fileIntegrityChecker&&!poolConfig.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
             downloadHolder.log(LogLevel.WARN,"[下载池文件完整性校验函数未通过]");
-            return false;
+            return "下载池文件完整性校验函数未通过";
         }
         downloadHolder.log(LogLevel.TRACE,"[文件完整性校验函数通过]");
-        return true;
+        return null;
     }
 
     /**
@@ -327,7 +331,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             String logFilePath = Files.createTempFile("QuickHttp.","txt").toString();
             downloadHolder.response = downloadHolder.downloadTask.request.logFilePath(logFilePath).execute();
         }
-        if(Files.exists(downloadHolder.file)&&isFileIntegrityPass(downloadHolder)){
+        if(Files.exists(downloadHolder.file)&&null==isFileIntegrityPass(downloadHolder)){
             for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
                 downloadTaskListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
             }

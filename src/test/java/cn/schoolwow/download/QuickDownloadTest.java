@@ -107,7 +107,6 @@ public class QuickDownloadTest {
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(2000);
-            downloadTask.stopDownload();
             Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
             Assert.assertEquals(Files.size(path),Files.size(filePath));
         } catch (InterruptedException e) {
@@ -130,7 +129,6 @@ public class QuickDownloadTest {
         QuickDownload.download(downloadTask);
         try {
             Thread.sleep(500);
-            downloadTask.stopDownload();
             Assert.assertTrue(Files.notExists(path));
         } catch (InterruptedException e) {
             e.printStackTrace();

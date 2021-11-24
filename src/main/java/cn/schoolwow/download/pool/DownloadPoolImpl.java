@@ -1,9 +1,6 @@
 package cn.schoolwow.download.pool;
 
-import cn.schoolwow.download.domain.DownloadHolder;
-import cn.schoolwow.download.domain.DownloadProgress;
-import cn.schoolwow.download.domain.DownloadTask;
-import cn.schoolwow.download.domain.PoolConfig;
+import cn.schoolwow.download.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +57,8 @@ public class DownloadPoolImpl implements DownloadPool{
                             logger.warn("[统计文件大小失败]{}", e.getMessage());
                         }
                         successDownloadCount++;
+                    }else{
+                        logger.warn("[子文件不存在]子文件路径:{}",subFile);
                     }
                 }
                 downloadProgress.currentFileSize = currentFileSize;
@@ -109,19 +108,26 @@ public class DownloadPoolImpl implements DownloadPool{
     }
 
     @Override
-    public void download(DownloadTask... downloadTasks){
+    public DownloadFuture[] download(DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
             logger.warn("[下载任务数组为空]");
-            return;
+            return null;
         }
-        for(DownloadTask downloadTask: downloadTasks){
-            DownloadHolder downloadHolder = getDownloadHolder(downloadTask);
+        DownloadFuture[] downloadFutures = new DownloadFuture[downloadTasks.length];
+        for(int i=0;i<downloadTasks.length;i++){
+            DownloadHolder downloadHolder = getDownloadHolder(downloadTasks[i]);
             if(null==downloadHolder){
+                logger.warn("[下载任务为空]数组下标:"+i);
                 continue;
             }
-            logger.trace("[添加下载任务到线程池]{}",downloadTask);
-            downloadTask.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
+            logger.trace("[添加下载任务到线程池]下标:{}",i);
+            DownloadFuture downloadFuture = new DownloadFuture();
+            downloadFuture.downloadPool = this;
+            downloadFuture.downloadHolder = downloadHolder;
+            downloadFuture.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
+            downloadFutures[i] = downloadFuture;
         }
+        return downloadFutures;
     }
 
     @Override
@@ -139,7 +145,6 @@ public class DownloadPoolImpl implements DownloadPool{
                 continue;
             }
             downloadHolders[i].countDownLatch = countDownLatch;
-            downloadTasks[i].downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolders[i].priorityThread);
         }
         poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
             try {
@@ -169,8 +174,10 @@ public class DownloadPoolImpl implements DownloadPool{
         DownloadHolder downloadHolder = new DownloadHolder();
         downloadHolder.downloadTask = downloadTask;
         downloadHolder.poolConfig = poolConfig;
-        downloadHolder.downloadProgress = new DownloadProgress();
-        downloadHolder.downloadProgress.m3u8 = downloadTask.m3u8;
+        if(null==downloadHolder.downloadProgress){
+            downloadHolder.downloadProgress = new DownloadProgress();
+            downloadHolder.downloadProgress.m3u8 = downloadTask.m3u8;
+        }
         //检查下载任务文件目录是否合法
         if(!checkDownloadTask(downloadHolder)){
             return null;
