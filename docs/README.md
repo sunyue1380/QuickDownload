@@ -2,7 +2,8 @@
 
 一个Http协议下载工具类.
 
-[中文文档](/zh-cn/)/[English](/en/)
+[中文文档](https://quickdownload.schoolwow.cn/#/zh-cn/)
+/[English](https://quickdownload.schoolwow.cn/#/en/)
 
 # 反馈
 
