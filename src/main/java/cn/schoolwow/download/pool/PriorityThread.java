@@ -75,11 +75,6 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
                 downloadHolder.downloadProgress.state = "下载中断";
                 downloadHolder.response.disconnect();
                 downloadHolder.response = null;
-            }else{
-                //从下载进度表移除
-                downloadHolderListLock.lock();
-                downloadHolderList.remove(downloadHolder);
-                downloadHolderListLock.unlock();
             }
             if(null!=downloadHolder.countDownLatch){
                 downloadHolder.countDownLatch.countDown();
@@ -165,7 +160,12 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
         downloadHolder.downloadProgress.state = "开始下载";
         //开始正式下载
         int retryTimes = 1;
-        while(retryTimes<=poolConfig.retryTimes&&!startDownload(downloadHolder)){
+        Exception exception = null;
+        while(retryTimes<=poolConfig.retryTimes){
+            exception = startDownload(downloadHolder);
+            if(null==exception){
+                break;
+            }
             if(Thread.currentThread().isInterrupted()){
                 logger.warn("[用户停止下载任务]下载任务保存路径:{}",downloadHolder.file);
                 return;
@@ -173,10 +173,41 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             downloadHolder.log(LogLevel.WARN,"[下载失败]重试{}/{}次",retryTimes,downloadHolder.poolConfig.retryTimes);
             retryTimes++;
         }
-        if(retryTimes>=poolConfig.retryTimes||Files.notExists(downloadHolder.file)){
+
+        //从下载进度表移除
+        downloadHolderListLock.lock();
+        downloadHolderList.remove(downloadHolder);
+        downloadHolderListLock.unlock();
+
+        if(retryTimes>=poolConfig.retryTimes||Files.notExists(downloadHolder.file)||null!=exception){
             downloadHolder.log(LogLevel.WARN,"[下载失败]文件路径:{}",downloadHolder.file);
+            downloadHolder.log(LogLevel.WARN,"[下载发生异常]异常信息:{}", exception);
+            downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载失败]");
+            downloadHolder.downloadProgress.state = "下载失败";
+            downloadHolder.log(LogLevel.TRACE,"[执行downloadFail事件]");
+            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
+                downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file, exception);
+            }
+            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
+                downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file, exception);
+            }
         }else{
             downloadHolder.log(LogLevel.INFO,"[文件下载完成]大小:{}",String.format("%.2fMB",Files.size(downloadHolder.file)/1.0/1024/1024));
+            downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载完成]");
+            downloadHolder.downloadProgress.state = "下载完成";
+            if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
+                downloadHolder.log(LogLevel.TRACE,"[删除临时文件]");
+                for(Path subFile:downloadHolder.downloadProgress.subFileList){
+                    Files.deleteIfExists(subFile);
+                }
+            }
+            downloadHolder.log(LogLevel.TRACE,"[执行downloadSuccess事件]");
+            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
+                downloadTaskListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
+            }
+            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
+                downloadPoolListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
+            }
         }
     }
 
@@ -185,7 +216,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
      * @param downloadHolder 下载任务
      * @return 是否下载成功
      * */
-    private boolean startDownload(DownloadHolder downloadHolder) {
+    private Exception startDownload(DownloadHolder downloadHolder) {
         //更新下载进度信息
         downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载中]");
         {
@@ -210,7 +241,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
         if(null==contentType){
             contentType = "";
         }
-        try{
+        try {
             if(downloadHolder.downloadTask.m3u8
                     ||contentType.contains("audio/x-mpegurl")
                     ||downloadHolder.response.url().endsWith(".m3u")
@@ -228,53 +259,16 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
                 DownloaderEnum.MultiThread.download(downloadHolder);
             }
             if(Thread.currentThread().isInterrupted()){
-                return false;
+                throw new InterruptedException("线程中断!");
             }
             String fileIntegrityResult = isFileIntegrityPass(downloadHolder);
-            if(null==fileIntegrityResult){
-                downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载完成]");
-                downloadHolder.downloadProgress.state = "下载完成";
-                if(downloadHolder.downloadTask.deleteTemporaryFile||downloadHolder.poolConfig.deleteTemporaryFile){
-                    downloadHolder.log(LogLevel.TRACE,"[删除临时文件]");
-                    for(Path subFile:downloadHolder.downloadProgress.subFileList){
-                        Files.deleteIfExists(subFile);
-                    }
-                }
-                downloadHolder.log(LogLevel.TRACE,"[执行downloadSuccess事件]");
-                for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                    downloadTaskListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
-                }
-                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
-                    downloadPoolListener.downloadSuccess(downloadHolder.response,downloadHolder.file);
-                }
-                return true;
-            }else{
-                downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载失败]");
-                downloadHolder.downloadProgress.state = "下载失败";
-                IOException exception = new IOException("文件完整性校验失败!"+fileIntegrityResult);
-                downloadHolder.log(LogLevel.TRACE,"[执行downloadFail事件]");
-                for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                    downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
-                }
-                for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
-                    downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
-                }
-                return false;
+            if(null!=fileIntegrityResult){
+                throw new IOException("文件完整性校验失败!"+fileIntegrityResult);
             }
-        }catch (Exception exception){
-            exception.printStackTrace();
-            downloadHolder.log(LogLevel.WARN,"[下载发生异常]异常信息:{}",exception.getMessage());
-            downloadHolder.log(LogLevel.TRACE,"[更新下载状态为下载失败]");
-            downloadHolder.downloadProgress.state = "下载失败";
-            downloadHolder.log(LogLevel.TRACE,"[执行downloadFail事件]");
-            for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
-                downloadTaskListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
-            }
-            for(DownloadPoolListener downloadPoolListener:poolConfig.downloadPoolListenerList){
-                downloadPoolListener.downloadFail(downloadHolder.response,downloadHolder.file,exception);
-            }
-            return false;
+        }catch (Exception e){
+            return e;
         }
+        return null;
     }
 
     /**
