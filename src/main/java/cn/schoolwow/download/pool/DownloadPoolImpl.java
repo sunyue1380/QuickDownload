@@ -57,8 +57,6 @@ public class DownloadPoolImpl implements DownloadPool{
                             logger.warn("[统计文件大小失败]{}", e.getMessage());
                         }
                         successDownloadCount++;
-                    }else{
-                        logger.warn("[子文件不存在]子文件路径:{}",subFile);
                     }
                 }
                 downloadProgress.currentFileSize = currentFileSize;

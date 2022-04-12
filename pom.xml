@@ -114,7 +114,7 @@
             <repositories>
                 <repository>
                     <id>schoolwow</id>
-                    <url>http://maven.schoolwow.cn:8081/repository/maven-public/</url>
+                    <url>http://maven.schoolwow.cn/repository/maven-public/</url>
                     <releases>
                         <enabled>true</enabled>
                     </releases>
@@ -126,11 +126,11 @@
             <distributionManagement>
                 <repository>
                     <id>schoolwow</id>
-                    <url>http://maven.schoolwow.cn:8081/repository/maven-releases/</url>
+                    <url>http://maven.schoolwow.cn/repository/maven-releases/</url>
                 </repository>
                 <snapshotRepository>
                     <id>schoolwow</id>
-                    <url>http://maven.schoolwow.cn:8081/repository/maven-snapshots/</url>
+                    <url>http://maven.schoolwow.cn/repository/maven-snapshots/</url>
                 </snapshotRepository>
             </distributionManagement>
         </profile>
