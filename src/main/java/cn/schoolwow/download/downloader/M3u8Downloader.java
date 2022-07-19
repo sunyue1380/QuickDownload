@@ -1,11 +1,12 @@
 package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
+import cn.schoolwow.download.util.M3u8Util;
 import cn.schoolwow.quickhttp.domain.LogLevel;
 import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
 import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
+import cn.schoolwow.quickhttp.domain.m3u8.tag.SEGMENT;
 import cn.schoolwow.quickhttp.response.Response;
-import cn.schoolwow.quickhttp.util.M3u8Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +27,17 @@ public class M3u8Downloader extends AbstractDownloader{
             throw new IllegalArgumentException("m3u8地址不是媒体播放列表!m3u8地址:"+downloadHolder.response.url());
         }
 
-        MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(downloadHolder.response.url(),downloadHolder.response.body());
+        String url = downloadHolder.response.url();
+        MediaPlaylist mediaPlaylist = cn.schoolwow.download.util.M3u8Util.getMediaPlaylist(url,downloadHolder.response.body());
+        //补充相对路径
+        {
+            String relativePath = url.substring(0,url.lastIndexOf("/")+1);
+            for(SEGMENT segment2:mediaPlaylist.segmentList){
+                if(!segment2.URI.startsWith("http")){
+                    segment2.URI = relativePath + segment2.URI;
+                }
+            }
+        }
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         int per = mediaPlaylist.segmentList.size()/maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[mediaPlaylist.segmentList.size()];
