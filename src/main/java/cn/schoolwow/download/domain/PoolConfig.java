@@ -54,7 +54,7 @@ public class PoolConfig {
             Runtime.getRuntime().availableProcessors(),
             1,
             TimeUnit.MINUTES,
-            new PriorityBlockingQueue<>()
+            new LinkedBlockingQueue<>()
     );
     {
         threadPoolExecutor.allowCoreThreadTimeOut(true);
