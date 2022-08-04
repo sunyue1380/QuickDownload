@@ -143,6 +143,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 continue;
             }
             downloadHolders[i].countDownLatch = countDownLatch;
+            poolConfig.threadPoolExecutor.submit(downloadHolders[i].priorityThread);
         }
         poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
             try {
@@ -152,8 +153,10 @@ public class DownloadPoolImpl implements DownloadPool{
             }
             Path[] paths = new Path[downloadHolders.length];
             for(int i=0;i<paths.length;i++){
-                if(null!=downloadHolders[i]){
+                if(null!=downloadHolders[i]&&null!=downloadHolders[i].file){
                     paths[i] = downloadHolders[i].file;
+                }else{
+                    paths[i] = Paths.get(downloadTasks[i].filePath);
                 }
             }
             downloadFinished.accept(paths);

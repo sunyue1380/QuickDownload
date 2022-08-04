@@ -74,8 +74,8 @@ public class PoolConfig {
 
     /**批量任务下载完成后处理线程池*/
     public ThreadPoolExecutor batchDownloadTaskThreadPoolExecutor = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors(),
-            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors()*2,
+            Runtime.getRuntime().availableProcessors()*2,
             1,
             TimeUnit.MINUTES,
             new LinkedBlockingQueue<>()
