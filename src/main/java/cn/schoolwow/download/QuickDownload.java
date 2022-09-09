@@ -1,13 +1,15 @@
 package cn.schoolwow.download;
 
-import cn.schoolwow.download.domain.DownloadFuture;
+import cn.schoolwow.download.domain.DownloadHolder;
 import cn.schoolwow.download.domain.DownloadProgress;
+import cn.schoolwow.download.domain.DownloadRecord;
 import cn.schoolwow.download.domain.DownloadTask;
 import cn.schoolwow.download.pool.DownloadPool;
 import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.download.pool.DownloadPoolImpl;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -21,15 +23,15 @@ public class QuickDownload {
     /**
      * 获取下载进度列表
      * */
-    public static DownloadPoolConfig downloadPoolConfig(){
-        return downloadPool.downloadPoolConfig();
+    public static List<DownloadProgress> getProgressList(){
+        return downloadPool.getProgressList();
     }
 
     /**
      * 获取下载进度列表
      * */
-    public static List<DownloadProgress> getProgressList(){
-        return downloadPool.getProgressList();
+    public static DownloadPoolConfig downloadPoolConfig(){
+        return downloadPool.downloadPoolConfig();
     }
 
     /**
@@ -43,8 +45,8 @@ public class QuickDownload {
      * 下载任务
      * @param downloadTasks 下载任务
      * */
-    public static DownloadFuture[] download(DownloadTask... downloadTasks){
-        return downloadPool.download(downloadTasks);
+    public static void download(DownloadTask... downloadTasks){
+        downloadPool.download(downloadTasks);
     }
 
     /**
@@ -54,6 +56,18 @@ public class QuickDownload {
      * */
     public static void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks){
         downloadPool.download(downloadFinished,downloadTasks);
+    }
+
+    /**
+     * 获取当前所有下载记录
+     * */
+    public static List<DownloadRecord> getDownloadRecordList(){
+        List<DownloadRecord> downloadRecordList = new ArrayList<>();
+        for(DownloadHolder downloadHolder:((DownloadPoolImpl)downloadPool).downloadHolderList){
+            DownloadRecord downloadRecord = new DownloadRecord(downloadHolder, (DownloadPoolImpl) downloadPool);
+            downloadRecordList.add(downloadRecord);
+        }
+        return downloadRecordList;
     }
 
     /**

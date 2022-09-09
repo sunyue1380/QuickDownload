@@ -106,12 +106,11 @@ public class DownloadPoolImpl implements DownloadPool{
     }
 
     @Override
-    public DownloadFuture[] download(DownloadTask... downloadTasks){
+    public void download(DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
             logger.warn("[下载任务数组为空]");
-            return null;
+            return;
         }
-        DownloadFuture[] downloadFutures = new DownloadFuture[downloadTasks.length];
         for(int i=0;i<downloadTasks.length;i++){
             DownloadHolder downloadHolder = getDownloadHolder(downloadTasks[i]);
             if(null==downloadHolder){
@@ -119,13 +118,8 @@ public class DownloadPoolImpl implements DownloadPool{
                 continue;
             }
             logger.trace("[添加下载任务到线程池]下标:{}",i);
-            DownloadFuture downloadFuture = new DownloadFuture();
-            downloadFuture.downloadPool = this;
-            downloadFuture.downloadHolder = downloadHolder;
-            downloadFuture.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
-            downloadFutures[i] = downloadFuture;
+            downloadHolder.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
         }
-        return downloadFutures;
     }
 
     @Override
@@ -161,6 +155,16 @@ public class DownloadPoolImpl implements DownloadPool{
             }
             downloadFinished.accept(paths);
         });
+    }
+
+    @Override
+    public List<DownloadRecord> getDownloadRecordList(){
+        List<DownloadRecord> downloadRecordList = new ArrayList<>();
+        for(DownloadHolder downloadHolder: downloadHolderList){
+            DownloadRecord downloadRecord = new DownloadRecord(downloadHolder, this);
+            downloadRecordList.add(downloadRecord);
+        }
+        return downloadRecordList;
     }
 
     /**

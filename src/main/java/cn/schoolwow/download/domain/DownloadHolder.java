@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 public class DownloadHolder {
     private Logger logger = LoggerFactory.getLogger(DownloadHolder.class);
@@ -39,6 +40,9 @@ public class DownloadHolder {
 
     /**优先级下载任务线程*/
     public PriorityThread priorityThread;
+
+    /**下载线程Future*/
+    public Future downloadThreadFuture;
 
     /**记录下载日志*/
     public volatile PrintWriter pw;

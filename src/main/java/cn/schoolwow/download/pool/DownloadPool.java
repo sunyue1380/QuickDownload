@@ -1,7 +1,7 @@
 package cn.schoolwow.download.pool;
 
-import cn.schoolwow.download.domain.DownloadFuture;
 import cn.schoolwow.download.domain.DownloadProgress;
+import cn.schoolwow.download.domain.DownloadRecord;
 import cn.schoolwow.download.domain.DownloadTask;
 
 import java.nio.file.Path;
@@ -30,7 +30,7 @@ public interface DownloadPool {
      * @param downloadTasks 下载任务
      * @return 下载任务令牌(可用于中断任务等)
      * */
-    DownloadFuture[] download(DownloadTask... downloadTasks);
+    void download(DownloadTask... downloadTasks);
 
     /**
      * 下载任务
@@ -38,4 +38,9 @@ public interface DownloadPool {
      * @param downloadTasks 下载任务
      * */
     void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks);
+
+    /**
+     * 获取当前所有下载记录
+     * */
+    List<DownloadRecord> getDownloadRecordList();
 }
