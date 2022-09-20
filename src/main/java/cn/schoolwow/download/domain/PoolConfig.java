@@ -53,7 +53,8 @@ public class PoolConfig {
             Runtime.getRuntime().availableProcessors(),
             1,
             TimeUnit.MINUTES,
-            new LinkedBlockingQueue<>()
+            new LinkedBlockingQueue<>(),
+            new NamedThreadFactory("quickdownload-dispatch")
     );
     {
         threadPoolExecutor.allowCoreThreadTimeOut(true);
@@ -65,7 +66,8 @@ public class PoolConfig {
             threadPoolExecutor.getCorePoolSize()*maxThreadConnection,
             1,
             TimeUnit.MINUTES,
-            new LinkedBlockingQueue<>()
+            new LinkedBlockingQueue<>(),
+            new NamedThreadFactory("quickdownload-download")
     );
     {
         downloadThreadPoolExecutor.allowCoreThreadTimeOut(true);
@@ -82,4 +84,5 @@ public class PoolConfig {
     {
         threadPoolExecutor.allowCoreThreadTimeOut(true);
     }
+
 }
