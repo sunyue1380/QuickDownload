@@ -199,29 +199,34 @@ public class DownloadPoolImpl implements DownloadPool{
      * 将DownloadHolder对象添加到下载进度列表
      * */
     private boolean addToDownloadHolderList(DownloadHolder downloadHolder){
-        downloadHolderListLock.lock();
-        downloadHolder.downloadProgress.m3u8 = downloadHolder.downloadTask.m3u8;
-        //是否添加成功
         boolean result = true;
-        if(null!=downloadHolder.downloadTask.filePath){
-            downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
-            Path path = Paths.get(downloadHolder.downloadProgress.filePath);
-            if(Files.exists(path)){
-                logger.debug("[跳过下载任务]文件已存在,路径:{}",path);
-                result = false;
+        downloadHolderListLock.lock();
+        try {
+            downloadHolder.downloadProgress.m3u8 = downloadHolder.downloadTask.m3u8;
+            //是否添加成功
+            if(null!=downloadHolder.downloadTask.filePath){
+                downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
+                Path path = Paths.get(downloadHolder.downloadProgress.filePath);
+                if(Files.exists(path)){
+                    logger.debug("[跳过下载任务]文件已存在,路径:{}",path);
+                    result = false;
+                }
+            }else{
+                String directoryPath = downloadHolder.downloadTask.directoryPath;
+                if(null==directoryPath){
+                    directoryPath = downloadHolder.poolConfig.directoryPath;
+                }
+                downloadHolder.downloadProgress.filePath = directoryPath+"/{{文件名}}";
+                result = true;
             }
-        }else{
-            String directoryPath = downloadHolder.downloadTask.directoryPath;
-            if(null==directoryPath){
-                directoryPath = downloadHolder.poolConfig.directoryPath;
+            if(result){
+                downloadHolderList.add(downloadHolder);
             }
-            downloadHolder.downloadProgress.filePath = directoryPath+"/{{文件名}}";
-            result = true;
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            downloadHolderListLock.unlock();
         }
-        if(result){
-            downloadHolderList.add(downloadHolder);
-        }
-        downloadHolderListLock.unlock();
         return result;
     }
 

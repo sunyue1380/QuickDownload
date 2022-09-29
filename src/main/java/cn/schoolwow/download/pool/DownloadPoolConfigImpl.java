@@ -20,70 +20,42 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
         this.poolConfig = poolConfig;
     }
 
-    /**
-     * 指定临时文件目录
-     * @param temporaryDirectoryPath 临时文件目录
-     * */
     @Override
     public DownloadPoolConfig temporaryDirectoryPath(String temporaryDirectoryPath){
         poolConfig.temporaryDirectoryPath = temporaryDirectoryPath;
         return this;
     }
 
-    /**
-     * 下载失败重试次数(默认3次)
-     * @param retryTimes 下载失败重试次数
-     * */
     @Override
     public DownloadPoolConfig retryTimes(int retryTimes){
         poolConfig.retryTimes = retryTimes;
         return this;
     }
 
-    /**
-     * 是否删除临时文件(默认删除)
-     * @param deleteTemporaryFile 是否删除临时文件
-     * */
     @Override
     public DownloadPoolConfig deleteTemporaryFile(boolean deleteTemporaryFile){
         poolConfig.deleteTemporaryFile = deleteTemporaryFile;
         return this;
     }
 
-    /**
-     * 是否强制单线程下载
-     * @param singleThread 是否强制单线程下载
-     * */
     @Override
     public DownloadPoolConfig singleThread(boolean singleThread){
         poolConfig.singleThread = singleThread;
         return this;
     }
 
-    /**
-     * 指定全局下载任务超时时间
-     * @param downloadTimeoutMillis 下载任务超时时间(ms)
-     * */
     @Override
     public DownloadPoolConfig maxDownloadTimeout(int downloadTimeoutMillis){
         poolConfig.downloadTimeoutMillis = downloadTimeoutMillis;
         return this;
     }
 
-    /**
-     * 指定最大下载速度(kb/s)
-     * @param maxDownloadSpeed 最大下载速度(kb/s)
-     * */
     @Override
     public DownloadPoolConfig maxDownloadSpeed(int maxDownloadSpeed){
         poolConfig.maxDownloadSpeed = maxDownloadSpeed;
         return this;
     }
 
-    /**
-     * 指定全局最大线程连接个数
-     * @param maxThreadConnection 最大线程连接个数
-     * */
     @Override
     public DownloadPoolConfig maxThreadConnection(int maxThreadConnection){
         int parallelDownloadCount = poolConfig.threadPoolExecutor.getCorePoolSize();
@@ -93,10 +65,6 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
         return this;
     }
 
-    /**
-     * 指定全局文件保存目录
-     * @param directoryPath 文件保存目录
-     * */
     @Override
     public DownloadPoolConfig directoryPath(String directoryPath){
         Path path = Paths.get(directoryPath);
@@ -112,10 +80,6 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
         return this;
     }
 
-    /**
-     * 指定最大同时下载任务个数
-     * @param parallelDownloadCount 最大同时下载任务个数
-     * */
     @Override
     public DownloadPoolConfig parallelDownloadCount(int parallelDownloadCount){
         poolConfig.threadPoolExecutor.setCorePoolSize(parallelDownloadCount);
@@ -125,20 +89,12 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
         return this;
     }
 
-    /**
-     * 指定全局文件完整性校验函数
-     * @param fileIntegrityChecker 文件完整性校验函数
-     * */
     @Override
     public DownloadPoolConfig fileIntegrityChecker(BiFunction<Response, Path,Boolean> fileIntegrityChecker){
         poolConfig.fileIntegrityChecker = fileIntegrityChecker;
         return this;
     }
 
-    /**
-     * 指定线程池事件监听接口
-     * @param downloadPoolListener 线程池事件监听接口
-     * */
     @Override
     public DownloadPoolConfig downloadPoolListener(DownloadPoolListener downloadPoolListener){
         poolConfig.downloadPoolListenerList.add(downloadPoolListener);

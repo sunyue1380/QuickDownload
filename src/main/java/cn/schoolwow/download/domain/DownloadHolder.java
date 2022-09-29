@@ -1,19 +1,11 @@
 package cn.schoolwow.download.domain;
 
 import cn.schoolwow.download.pool.PriorityThread;
-import cn.schoolwow.quickhttp.domain.LogLevel;
 import cn.schoolwow.quickhttp.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 
@@ -44,59 +36,4 @@ public class DownloadHolder {
     /**下载线程Future*/
     public Future downloadThreadFuture;
 
-    /**记录下载日志*/
-    public volatile PrintWriter pw;
-
-    public void openDownloadLogFile() {
-        if(null!=downloadTask.downloadLogFilePath){
-            try {
-                File logFile = new File(downloadTask.downloadLogFilePath);
-                logFile.getParentFile().mkdirs();
-                pw = new PrintWriter(new FileWriter(logFile,true));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public synchronized void appendLog(String logFilePath){
-        try {
-            Scanner scanner = new Scanner(new File(logFilePath));
-            while(scanner.hasNextLine()){
-                pw.write(scanner.nextLine()+"\n");
-            }
-            scanner.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public synchronized void log(LogLevel logLevel, String message, Object... parameters){
-        if(null!=pw){
-            StringBuilder builder = new StringBuilder(message);
-            for(Object parameter:parameters){
-                int startIndex = builder.indexOf("{");
-                int endIndex = builder.indexOf("}");
-                if(startIndex>0&&endIndex>0){
-                    builder.replace(startIndex,endIndex+1,parameter.toString());
-                }
-            }
-            pw.append((logLevel.name().toString() + " " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")) + " " + builder.toString()+"\n"));
-        }
-        switch (logLevel){
-            case TRACE:logger.trace(message,parameters);break;
-            case DEBUG:logger.debug(message,parameters);break;
-            case INFO:logger.info(message,parameters);break;
-            case WARN:logger.warn(message,parameters);break;
-            case ERROR:logger.error(message,parameters);break;
-        }
-    }
-
-    public void closeDownloadLogFile() {
-        if(null!=pw){
-            pw.flush();
-            pw.close();
-            pw = null;
-        }
-    }
 }

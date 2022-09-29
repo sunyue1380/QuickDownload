@@ -2,11 +2,12 @@ package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
 import cn.schoolwow.download.util.M3u8Util;
-import cn.schoolwow.quickhttp.domain.LogLevel;
 import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
 import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
 import cn.schoolwow.quickhttp.domain.m3u8.tag.SEGMENT;
 import cn.schoolwow.quickhttp.response.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,17 +19,20 @@ import java.util.concurrent.Future;
 
 /**m3u8格式视频下载*/
 public class M3u8Downloader extends AbstractDownloader{
+    private Logger logger = LoggerFactory.getLogger(M3u8Downloader.class);
+
     @Override
     public void download(DownloadHolder downloadHolder) throws Exception {
         downloadHolder.downloadProgress.m3u8 = true;
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         if(!M3u8Type.MediaPlayList.equals(M3u8Util.getM3u8Type(downloadHolder.response.body()))){
-            downloadHolder.log(LogLevel.ERROR,"[m3u8地址不是媒体播放列表]m3u8地址:{}",downloadHolder.response.url());
-            throw new IllegalArgumentException("m3u8地址不是媒体播放列表!m3u8地址:"+downloadHolder.response.url());
+            logger.warn("m3u8地址不是媒体播放列表,地址:{}", downloadHolder.response.url());
+            return;
         }
 
         String url = downloadHolder.response.url();
-        MediaPlaylist mediaPlaylist = cn.schoolwow.download.util.M3u8Util.getMediaPlaylist(url,downloadHolder.response.body());
+        MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(url,downloadHolder.response.body());
+        logger.info("下载方式为m3u8,总分段个数:{},保存路径:{}", mediaPlaylist.segmentList, downloadHolder.file);
         //补充相对路径
         {
             String relativePath = url.substring(0,url.lastIndexOf("/")+1);
@@ -53,11 +57,11 @@ public class M3u8Downloader extends AbstractDownloader{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
                     if(Files.exists(subFilePath)){
-                        downloadHolder.log(LogLevel.DEBUG,"[分段文件已存在]路径:{}",subFilePath);
+                        logger.debug("分段文件已存在,路径:{}", subFilePath);
                         continue;
                     }
                     try {
-                        downloadHolder.log(LogLevel.DEBUG,"[准备下载分段文件]路径:{}",subFilePath);
+                        logger.trace("准备下载分段文件,路径:{}", subFilePath);
                         Response subResponse = downloadHolder.downloadTask.request.clone()
                                 .url(mediaPlaylist.segmentList.get(j).URI)
                                 .retryTimes(3)
@@ -69,13 +73,9 @@ public class M3u8Downloader extends AbstractDownloader{
                         long estimateTotalSize = downloadHolder.downloadProgress.totalFileSize/downloadHolder.downloadProgress.subFileList.length*mediaPlaylist.segmentList.size();
                         downloadHolder.downloadProgress.totalFileSizeFormat = String.format("%d(%.2fMB)",mediaPlaylist.segmentList.size(),estimateTotalSize/1.0/1024/1024);
                         subResponse.bodyAsFile(subFilePath);
-                        downloadHolder.log(LogLevel.DEBUG,"[m3u8分段文件下载完成]大小:{},路径:{}",Files.size(subFilePath),subFilePath);
+                        logger.debug("m3u8分段文件下载完成,大小:{},路径:{}", Files.size(subFilePath),subFilePath);
                     } catch (IOException e) {
-                        e.printStackTrace();
-                        downloadHolder.log(LogLevel.WARN,"[m3u8分段文件下载失败]路径:{}", subFilePath);
-                        synchronized (downloadHolder){
-                            e.printStackTrace(downloadHolder.pw);
-                        }
+                        logger.error("m3u8分段文件下载失败,分段文件路径:{}", subFilePath, e);
                     }
                 }
                 countDownLatch.countDown();
