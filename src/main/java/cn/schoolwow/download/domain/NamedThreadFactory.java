@@ -3,6 +3,7 @@ package cn.schoolwow.download.domain;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**线程工厂类*/
 class NamedThreadFactory implements ThreadFactory {
     protected static final AtomicInteger POOL_SEQ = new AtomicInteger(1);
 

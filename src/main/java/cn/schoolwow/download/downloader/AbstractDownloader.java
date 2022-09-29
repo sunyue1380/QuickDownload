@@ -24,7 +24,7 @@ public abstract class AbstractDownloader implements Downloader{
      * 合并分段文件
      * @param downloadHolder 下载任务
      * */
-    protected void mergeSubFileList(DownloadHolder downloadHolder, CountDownLatch countDownLatch) throws IOException {
+    protected void mergeSubFileList(DownloadHolder downloadHolder, CountDownLatch countDownLatch) throws IOException, InterruptedException {
         int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600000?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.poolConfig.downloadTimeoutMillis;
         try {
             if(!countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS)){
@@ -33,20 +33,18 @@ public abstract class AbstractDownloader implements Downloader{
             }
         } catch (InterruptedException e) {
             logger.debug("等待合并文件时发生线程中断,停止下载文件");
-            Thread.currentThread().interrupt();
             if(null!=downloadThreadFutures){
                 for(Future future:downloadThreadFutures){
                     future.cancel(true);
                 }
             }
-            return;
+            throw e;
         }
-        //检查是否可以合并
-        logger.trace("检查文件是否可以合并");
+
         long mergeFileSize = 0;
         for(Path subFile:downloadHolder.downloadProgress.subFileList){
             if(Files.notExists(subFile)){
-                logger.warn("由于部分分段文件不存在导致文件合并失败,分段文件路径:{}", subFile);
+                logger.warn("部分分段文件不存在无法合并文件,分段文件路径:{}", subFile);
                 return;
             }
             mergeFileSize += Files.size(subFile);
@@ -61,7 +59,7 @@ public abstract class AbstractDownloader implements Downloader{
         }
 
         Path file = downloadHolder.file;
-        if(Files.notExists(file.getParent())){
+        if(!file.toFile().getParentFile().exists()){
             Files.createDirectories(file.getParent());
         }
         Files.deleteIfExists(file);

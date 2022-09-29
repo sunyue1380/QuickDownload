@@ -25,9 +25,10 @@ public class SingleThreadDownloader extends AbstractDownloader{
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
         logger.debug("准备下载临时文件,路径:{}", tempFilePath);
         downloadHolder.response.maxDownloadSpeed(maxDownloadSpeed).bodyAsFile(tempFilePath);
-        logger.debug("准备复制文件,原路径:{},目标路径:{}", tempFilePath, downloadHolder.file);
+        logger.debug("准备复制文件,临时文件大小:{},原路径:{},目标路径:{}", tempFilePath.toFile().length(), tempFilePath, downloadHolder.file);
         Files.copy(tempFilePath,downloadHolder.file, StandardCopyOption.REPLACE_EXISTING);
         Files.deleteIfExists(tempFilePath);
-        logger.info("文件下载完毕,大小:{},路径:{}", Files.size(downloadHolder.file),downloadHolder.file);
+        logger.info("文件下载完毕,大小:{},路径:{}", downloadHolder.file.toFile().length(),downloadHolder.file);
+        downloadHolder.response.disconnect();
     }
 }

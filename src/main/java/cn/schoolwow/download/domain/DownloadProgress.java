@@ -13,7 +13,7 @@ public class DownloadProgress {
     /**
      * 当前状态
      */
-    public String state = "等待下载";
+    public String state = "等待运行";
     /**
      * 是否m3u8任务
      * */

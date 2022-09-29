@@ -91,7 +91,7 @@ public class M3u8Util {
      * @param url m3u8请求url
      * @param content m3u8文件内容
      * */
-    public static MediaPlaylist getMediaPlaylist(String url, String content) throws Exception {
+    public static MediaPlaylist getMediaPlaylist(String url, String content) {
         MediaPlaylist mediaPlaylist = new MediaPlaylist();
 
         SEGMENT segment = new SEGMENT();
@@ -190,7 +190,7 @@ public class M3u8Util {
         return mediaPlaylist;
     }
 
-    private static <T> T getInstance(Class<T> clazz, String attributes) throws Exception {
+    private static <T> T getInstance(Class<T> clazz, String attributes) {
         JSONObject o = new JSONObject(true);
         //从左往右开始扫描
         int currentIndex = 0;
@@ -233,15 +233,19 @@ public class M3u8Util {
             currentIndex++;
         }
 
-        Field[] fields = getAllField(clazz);
-        T instance = clazz.newInstance();
-        for(Field field:fields){
-            String property = field.getName().replace("_","-");
-            if(o.containsKey(property)){
-                field.set(instance,o.getString(property));
+        try {
+            Field[] fields = getAllField(clazz);
+            T instance = clazz.newInstance();
+            for(Field field:fields){
+                String property = field.getName().replace("_","-");
+                if(o.containsKey(property)){
+                    field.set(instance,o.getString(property));
+                }
             }
+            return instance;
+        }catch (Exception e){
+            throw new RuntimeException(e);
         }
-        return instance;
     }
 
     /**

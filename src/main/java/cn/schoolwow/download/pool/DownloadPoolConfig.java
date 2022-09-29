@@ -75,13 +75,6 @@ public interface DownloadPoolConfig {
     DownloadPoolConfig downloadPoolListener(DownloadPoolListener downloadPoolListener);
 
     /**
-     * 指定请求日志文件夹
-     *
-     * @param logDirectoryPath 日志文件夹路径
-     */
-    DownloadPoolConfig logDirectoryPath(String logDirectoryPath);
-
-    /**
      * 获取配置参数
      * */
     PoolConfig getPoolConfig();

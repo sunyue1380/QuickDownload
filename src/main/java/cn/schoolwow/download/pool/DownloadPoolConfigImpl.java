@@ -3,17 +3,16 @@ package cn.schoolwow.download.pool;
 import cn.schoolwow.download.domain.PoolConfig;
 import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.quickhttp.response.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.BiFunction;
 
+/**线程池配置类*/
 public class DownloadPoolConfigImpl implements DownloadPoolConfig{
-    private Logger logger = LoggerFactory.getLogger(DownloadPoolConfigImpl.class);
+    /**线程池配置*/
     private PoolConfig poolConfig;
 
     public DownloadPoolConfigImpl(PoolConfig poolConfig) {
@@ -67,13 +66,12 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
 
     @Override
     public DownloadPoolConfig directoryPath(String directoryPath){
-        Path path = Paths.get(directoryPath);
-        if(Files.notExists(path)){
+        File file = new File(directoryPath);
+        if(!file.exists()){
             try {
-                Files.createDirectories(path);
+                Files.createDirectories(file.toPath());
             } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
+                throw new RuntimeException("创建全局文件夹失败", e);
             }
         }
         poolConfig.directoryPath = directoryPath;
@@ -98,12 +96,6 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     @Override
     public DownloadPoolConfig downloadPoolListener(DownloadPoolListener downloadPoolListener){
         poolConfig.downloadPoolListenerList.add(downloadPoolListener);
-        return this;
-    }
-
-    @Override
-    public DownloadPoolConfig logDirectoryPath(String logDirectoryPath) {
-        poolConfig.logDirectoryPath = logDirectoryPath;
         return this;
     }
 

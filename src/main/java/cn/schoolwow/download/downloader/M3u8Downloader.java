@@ -22,7 +22,7 @@ public class M3u8Downloader extends AbstractDownloader{
     private Logger logger = LoggerFactory.getLogger(M3u8Downloader.class);
 
     @Override
-    public void download(DownloadHolder downloadHolder) throws Exception {
+    public void download(DownloadHolder downloadHolder) throws IOException, InterruptedException {
         downloadHolder.downloadProgress.m3u8 = true;
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         if(!M3u8Type.MediaPlayList.equals(M3u8Util.getM3u8Type(downloadHolder.response.body()))){
@@ -48,6 +48,7 @@ public class M3u8Downloader extends AbstractDownloader{
         for(int i=0;i<mediaPlaylist.segmentList.size();i++){
             downloadHolder.downloadProgress.subFileList[i] = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + "["+i+"]." +downloadHolder.response.contentLength() + "." + downloadHolder.file.getFileName().toString()+".ts");
         }
+        downloadHolder.response.disconnect();
         super.downloadThreadFutures = new Future[maxThreadConnection];
         for(int i=0;i<maxThreadConnection;i++){
             final int start = i*per;

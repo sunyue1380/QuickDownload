@@ -18,7 +18,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
     private Logger logger = LoggerFactory.getLogger(MultiThreadDownloader.class);
 
     @Override
-    public void download(DownloadHolder downloadHolder) throws IOException {
+    public void download(DownloadHolder downloadHolder) throws IOException, InterruptedException {
         downloadHolder.response.disconnect();
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;

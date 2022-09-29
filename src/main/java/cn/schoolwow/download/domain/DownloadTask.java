@@ -48,9 +48,6 @@ public class DownloadTask implements Comparable<DownloadTask>{
     /**事件监听*/
     public List<DownloadTaskListener> downloadTaskListenerList = new ArrayList<>();
 
-    /**下载日志文件路径*/
-    public String downloadLogFilePath;
-
     @Override
     public int compareTo(DownloadTask downloadTask) {
         if(this.priority<downloadTask.priority){

@@ -33,7 +33,7 @@ public class PoolConfig {
     public int maxDownloadSpeed;
 
     /**临时文件目录*/
-    public String temporaryDirectoryPath = System.getProperty("java.io.tmpdir")+ File.separator+"DownloadPool";
+    public String temporaryDirectoryPath = System.getProperty("java.io.tmpdir") + File.separator + "DownloadPool";
 
     /**全局保存目录*/
     public String directoryPath;
@@ -43,9 +43,6 @@ public class PoolConfig {
 
     /**线程池事件监听接口*/
     public List<DownloadPoolListener> downloadPoolListenerList = new ArrayList<>();
-
-    /**下载日志文件夹路径*/
-    public String logDirectoryPath;
 
     /**下载任务调度线程池*/
     public ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
@@ -79,7 +76,8 @@ public class PoolConfig {
             Runtime.getRuntime().availableProcessors()*2,
             1,
             TimeUnit.MINUTES,
-            new LinkedBlockingQueue<>()
+            new LinkedBlockingQueue<>(),
+            new NamedThreadFactory("quickdownload-batch")
     );
     {
         threadPoolExecutor.allowCoreThreadTimeOut(true);

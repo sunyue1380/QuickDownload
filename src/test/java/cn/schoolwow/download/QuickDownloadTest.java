@@ -8,10 +8,9 @@ import cn.schoolwow.download.pool.DownloadPoolConfig;
 import cn.schoolwow.quickhttp.QuickHttp;
 import cn.schoolwow.quickhttp.response.Response;
 import cn.schoolwow.quickserver.QuickServer;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -24,7 +23,7 @@ public class QuickDownloadTest {
             try {
                 QuickServer.newInstance()
                         .staticResourcePath(System.getProperty("user.dir"))
-                        .maxLimitSpeed(64)
+                        .maxLimitSpeed(128)
                         .port(10002)
                         .start();
             } catch (IOException e) {
@@ -34,112 +33,97 @@ public class QuickDownloadTest {
         QuickHttp.clientConfig().origin("http://127.0.0.1:10002");
     }
 
-    @Test
-    public void singleDownload() throws IOException {
-        DownloadTask downloadTask = new DownloadTask();
-        Path tempFilePath = Files.createTempFile("QuickDownload.",".LICENSE");
-        Files.deleteIfExists(tempFilePath);
-        downloadTask.filePath = tempFilePath.toString();
-        downloadTask.request = QuickHttp.connect("/LICENSE");
-        downloadTask.singleThread = true;
-        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleDownload_" + System.currentTimeMillis()+".txt";
-        QuickDownload.download(downloadTask);
-        try {
-            Thread.sleep(2000);
-            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
-            Assert.assertEquals(Files.size(path),Files.size(tempFilePath));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
-            Files.deleteIfExists(tempFilePath);
+    private static long expectFileSize;
+    static{
+        File file = new File(System.getProperty("user.dir")+"/LICENSE");
+        expectFileSize = file.length();
+    }
+
+    private File tempFile = null;
+
+    @Before
+    public void before() throws IOException {
+        tempFile = File.createTempFile("QuickDownload.",".LICENSE");
+    }
+
+    @After
+    public void after(){
+        if(null!=tempFile&&tempFile.exists()){
+            try {
+                Files.deleteIfExists(tempFile.toPath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Test
-    public void singleSupplierDownload() throws IOException {
-        DownloadTask downloadTask = new DownloadTask();
-        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
-        Files.deleteIfExists(tempFilePath);
-        downloadTask.filePath = tempFilePath.toString();
+    public void singleDownload() throws InterruptedException {
+        DownloadTask downloadTask = getDownloadTask();
+        downloadTask.singleThread = true;
+        downloadTask.request = QuickHttp.connect("/LICENSE");
+        QuickDownload.download(downloadTask);
+        Thread.sleep(2000);
+        Assert.assertNotNull(tempFile);
+        Assert.assertEquals(expectFileSize, tempFile.length());
+    }
+
+    @Test
+    public void singleSupplierDownload() throws InterruptedException {
+        DownloadTask downloadTask = getDownloadTask();
         downloadTask.requestSupplier = ()->QuickHttp.connect("/LICENSE");
         downloadTask.singleThread = true;
-        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleSupplierDownload_" + System.currentTimeMillis()+".txt";
         QuickDownload.download(downloadTask);
-        try {
-            Thread.sleep(2000);
-            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
-            Assert.assertEquals(Files.size(path),Files.size(tempFilePath));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
-            Files.deleteIfExists(tempFilePath);
-        }
+        Thread.sleep(2000);
+        Assert.assertNotNull(tempFile);
+        Assert.assertEquals(expectFileSize, tempFile.length());
     }
 
     @Test
-    public void singleDownloadStopDownload() throws IOException {
-        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
-        Files.deleteIfExists(tempFilePath);
-        DownloadTask downloadTask = new DownloadTask();
-        downloadTask.filePath = tempFilePath.toString();
+    public void singleDownloadStopDownload() throws InterruptedException {
+        DownloadTask downloadTask = getDownloadTask();
         downloadTask.request = QuickHttp.connect("/LICENSE");
         downloadTask.singleThread = true;
         QuickDownload.download(downloadTask);
-        try {
-            List<DownloadRecord> downloadRecordList = QuickDownload.getDownloadRecordList();
-            for(DownloadRecord downloadRecord:downloadRecordList){
-                downloadRecord.deleteDownloadRecord();
-            }
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
-            Files.deleteIfExists(tempFilePath);
+        List<DownloadRecord> downloadRecordList = QuickDownload.getDownloadRecordList();
+        if(downloadRecordList.isEmpty()){
+            throw new IllegalArgumentException("获取下载记录为空!");
         }
+        for(DownloadRecord downloadRecord:downloadRecordList){
+            downloadRecord.deleteDownloadRecord();
+        }
+        Thread.sleep(3000);
     }
 
 
     @Test
-    public void multiDownload() throws IOException {
-        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
-        Files.deleteIfExists(tempFilePath);
-        DownloadTask downloadTask = new DownloadTask();
-        downloadTask.filePath = tempFilePath.toString();
+    public void multiDownload() throws InterruptedException {
+        DownloadTask downloadTask = getDownloadTask();
         downloadTask.request = QuickHttp.connect("/LICENSE");
-        downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/multiDownload_" + System.currentTimeMillis()+".txt";
         QuickDownload.download(downloadTask);
-        try {
-            Thread.sleep(2000);
-            Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
-            Assert.assertEquals(Files.size(path),Files.size(tempFilePath));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
-            Files.deleteIfExists(tempFilePath);
-        }
+        Thread.sleep(2000);
+        Assert.assertNotNull(tempFile);
+        Assert.assertEquals(expectFileSize, tempFile.length());
     }
 
     @Test
-    public void multiDownloadStopDownload() throws IOException {
-        Path tempFilePath = Files.createTempFile("QuickDownload",".LICENSE");
-        Files.deleteIfExists(tempFilePath);
-
-        DownloadTask downloadTask = new DownloadTask();
-        downloadTask.filePath = tempFilePath.toString();
+    public void multiDownloadStopDownload() throws InterruptedException {
+        DownloadTask downloadTask = getDownloadTask();
         downloadTask.request = QuickHttp.connect("/LICENSE");
         QuickDownload.downloadPoolConfig().maxThreadConnection(4);
         QuickDownload.download(downloadTask);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }finally {
-            Files.deleteIfExists(tempFilePath);
+        List<DownloadRecord> downloadRecordList = QuickDownload.getDownloadRecordList();
+        for(DownloadRecord downloadRecord:downloadRecordList){
+            downloadRecord.deleteDownloadRecord();
         }
+        Thread.sleep(1000);
+        Assert.assertNotNull(tempFile);
+        Assert.assertTrue(tempFile.exists());
+        Assert.assertTrue(tempFile.length()<expectFileSize);
     }
 
     @Test
-    public void deleteTemporaryFile() throws IOException {
+    public void deleteTemporaryFile() throws IOException, InterruptedException {
         String temporaryDirectoryPath = System.getProperty("user.dir")+"/temporaryFilePath";
         Path temporaryDirectoryFilePath = Paths.get(temporaryDirectoryPath);
         Files.deleteIfExists(temporaryDirectoryFilePath);
@@ -185,7 +169,6 @@ public class QuickDownloadTest {
     @Test
     public void multiDownloadTaskDownload() throws IOException {
         DownloadPool downloadPool = QuickDownload.newDownloadPool();
-        downloadPool.downloadPoolConfig().logDirectoryPath(System.getProperty("user.dir")+"/logs");
         Path path = Paths.get(System.getProperty("user.dir")+"/LICENSE");
         downloadPool.downloadPoolConfig().downloadPoolListener(new SimpleDownloadPoolListener() {
             @Override
@@ -206,7 +189,6 @@ public class QuickDownloadTest {
             downloadTask.filePath = tempFilePath.toString();
             downloadTask.request = QuickHttp.connect("/LICENSE");
             downloadTask.singleThread = true;
-            downloadTask.downloadLogFilePath = System.getProperty("user.dir") + "/logs/singleDownload_" + System.currentTimeMillis()+".txt";
             downloadPool.download(downloadTask);
         }
 
@@ -216,4 +198,11 @@ public class QuickDownloadTest {
             e.printStackTrace();
         }
     }
+
+    private DownloadTask getDownloadTask(){
+        DownloadTask downloadTask = new DownloadTask();
+        downloadTask.filePath = tempFile.getAbsolutePath();
+        return downloadTask;
+    }
+
 }

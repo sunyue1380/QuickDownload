@@ -4,6 +4,7 @@ import cn.schoolwow.download.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class DownloadPoolImpl implements DownloadPool{
@@ -28,9 +28,6 @@ public class DownloadPoolImpl implements DownloadPool{
 
     /**下载进度列表*/
     public List<DownloadHolder> downloadHolderList = new CopyOnWriteArrayList<>();
-
-    /**同步锁*/
-    public ReentrantLock downloadHolderListLock = new ReentrantLock();
 
     @Override
     public DownloadPoolConfig downloadPoolConfig() {
@@ -203,64 +200,56 @@ public class DownloadPoolImpl implements DownloadPool{
      * 将DownloadHolder对象添加到下载进度列表
      * */
     private boolean addToDownloadHolderList(DownloadHolder downloadHolder){
-        boolean result = true;
-        downloadHolderListLock.lock();
-        try {
-            downloadHolder.downloadProgress.m3u8 = downloadHolder.downloadTask.m3u8;
-            //是否添加成功
+        boolean addResult = true;
+        synchronized (downloadHolderList){
+            //判断下载列表是否已存在该记录
             if(null!=downloadHolder.downloadTask.filePath){
-                downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
-                Path path = Paths.get(downloadHolder.downloadProgress.filePath);
-                if(Files.exists(path)){
-                    logger.debug("跳过下载任务,文件已存在,路径:{}",path);
-                    result = false;
+                if(downloadHolderList.contains(downloadHolder)){
+                    logger.debug("下载任务已存在于下载进度列表中,文件路径:{}", downloadHolder.downloadTask.filePath);
+                    addResult = false;
                 }
             }else{
+                //如果是指定文件夹,则在进度对象中设置显示路径
                 String directoryPath = downloadHolder.downloadTask.directoryPath;
                 if(null==directoryPath){
                     directoryPath = downloadHolder.poolConfig.directoryPath;
                 }
-                downloadHolder.downloadProgress.filePath = directoryPath+"/{{文件名}}";
-                result = true;
+                downloadHolder.downloadProgress.filePath = directoryPath+"/{{等待获取文件名}}";
+                addResult = true;
             }
-            if(result){
+            if(addResult){
                 downloadHolderList.add(downloadHolder);
             }
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            downloadHolderListLock.unlock();
         }
-        return result;
+        return addResult;
     }
 
     /**
      * 检查下载任务是否合法
      * */
     private boolean checkDownloadTask(DownloadHolder downloadHolder) {
-        if(null!=downloadHolder.downloadTask.directoryPath){
-            Path path = Paths.get(downloadHolder.downloadTask.directoryPath);
-            if(Files.notExists(path)){
-                try {
-                    Files.createDirectories(path);
-                } catch (IOException e) {
-                    logger.warn("保存路径所在目录创建失败,路径:{}", path, e);
-                    return false;
-                }
+        File directory = null;
+        //指定了文件全路径则判断能否创建文件父目录
+        if(null!=downloadHolder.downloadTask.filePath){
+            directory = new File(downloadHolder.downloadTask.filePath).getParentFile();
+        }else{
+            //判断是否指定了下载目录
+            if(null==downloadHolder.downloadTask.directoryPath){
+                downloadHolder.downloadTask.directoryPath = downloadHolder.poolConfig.directoryPath;
             }
-        }else if(null!=downloadHolder.downloadTask.filePath){
-            downloadHolder.file = Paths.get(downloadHolder.downloadTask.filePath);
-            if(Files.notExists(downloadHolder.file.getParent())){
-                try {
-                    Files.createDirectories(downloadHolder.file.getParent());
-                } catch (IOException e) {
-                    logger.warn("保存路径所在目录创建失败,路径:{}", downloadHolder.file.getParent(), e);
-                    return false;
-                }
+            if(null==downloadHolder.downloadTask.directoryPath){
+                logger.warn("请指定下载文件路径或者下载文件保存文件夹");
+                return false;
             }
-        }else if(null==poolConfig.directoryPath){
-            logger.warn("未指定下载路径,请指定文件全路径或者文件保存目录!");
-            return false;
+            directory = new File(downloadHolder.downloadTask.directoryPath);
+        }
+        if(!directory.exists()){
+            try {
+                Files.createDirectories(directory.toPath());
+            } catch (IOException e) {
+                logger.warn("创建保存文件夹失败,路径:{}", directory, e);
+                return false;
+            }
         }
         return true;
     }
