@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -26,7 +27,10 @@ public abstract class AbstractDownloader implements Downloader{
     protected void mergeSubFileList(DownloadHolder downloadHolder, CountDownLatch countDownLatch) throws IOException {
         int downloadTimeoutMillis = downloadHolder.downloadTask.downloadTimeoutMillis==3600000?downloadHolder.downloadTask.downloadTimeoutMillis:downloadHolder.poolConfig.downloadTimeoutMillis;
         try {
-            countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS);
+            if(!countDownLatch.await(downloadTimeoutMillis, TimeUnit.MILLISECONDS)){
+                logger.warn("分段文件下载时间超过阈值,下载失败!下载时间阈值:{}毫秒,保存路径:{}", downloadTimeoutMillis, downloadHolder.file);
+                return;
+            }
         } catch (InterruptedException e) {
             logger.debug("等待合并文件时发生线程中断,停止下载文件");
             Thread.currentThread().interrupt();
@@ -62,13 +66,17 @@ public abstract class AbstractDownloader implements Downloader{
         }
         Files.deleteIfExists(file);
         Files.createFile(file);
-        FileChannel fileChannel = FileChannel.open(file, StandardOpenOption.APPEND);
-        long currentSize = 0;
-        for(Path subFile:downloadHolder.downloadProgress.subFileList){
-            fileChannel.transferFrom(Files.newByteChannel(subFile),currentSize,Files.size(subFile));
-            currentSize += Files.size(subFile);
+        try (FileChannel fileChannel = FileChannel.open(file, StandardOpenOption.APPEND);){
+            long currentSize = 0;
+            for(Path subFile:downloadHolder.downloadProgress.subFileList){
+                try (SeekableByteChannel subFileChannel = Files.newByteChannel(subFile);){
+                    fileChannel.transferFrom(subFileChannel, currentSize, Files.size(subFile));
+                }
+                currentSize += Files.size(subFile);
+            }
+            fileChannel.close();
+            logger.info("合并文件完成,大小:{},合并文件路径:{}", Files.size(downloadHolder.file),downloadHolder.file);
         }
-        fileChannel.close();
-        logger.info("合并文件完成,大小:{},合并文件路径:{}", Files.size(downloadHolder.file),downloadHolder.file);
+
     }
 }

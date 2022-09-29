@@ -54,7 +54,7 @@ public class DownloadPoolImpl implements DownloadPool{
                         try {
                             currentFileSize += Files.size(subFile);
                         } catch (IOException e) {
-                            logger.warn("[统计文件大小失败]{}", e.getMessage());
+                            logger.warn("统计文件大小失败,{}", e.getMessage());
                         }
                         successDownloadCount++;
                     }
@@ -108,16 +108,16 @@ public class DownloadPoolImpl implements DownloadPool{
     @Override
     public void download(DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
-            logger.warn("[下载任务数组为空]");
+            logger.warn("下载任务数组为空");
             return;
         }
         for(int i=0;i<downloadTasks.length;i++){
             DownloadHolder downloadHolder = getDownloadHolder(downloadTasks[i]);
             if(null==downloadHolder){
-                logger.warn("[下载任务为空]数组下标:"+i);
+                logger.warn("下载任务为空,数组下标:"+i);
                 continue;
             }
-            logger.trace("[添加下载任务到线程池]下标:{}",i);
+            logger.trace("添加下载任务到线程池,下标:{}",i);
             downloadHolder.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
         }
     }
@@ -125,7 +125,7 @@ public class DownloadPoolImpl implements DownloadPool{
     @Override
     public void download(Consumer<Path[]> downloadFinished, DownloadTask... downloadTasks){
         if(null==downloadTasks||downloadTasks.length==0){
-            logger.warn("[下载任务数组为空]");
+            logger.warn("下载任务数组为空");
             return;
         }
         CountDownLatch countDownLatch = new CountDownLatch(downloadTasks.length);
@@ -141,9 +141,13 @@ public class DownloadPoolImpl implements DownloadPool{
         }
         poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
             try {
-                countDownLatch.await(2, TimeUnit.HOURS);
+                if(!countDownLatch.await(2, TimeUnit.HOURS)){
+                    logger.warn("文件下载时间超过阈值,停止处理!");
+                    return;
+                }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.debug("后处理线程发生线程中断,停止处理!");
+                return;
             }
             Path[] paths = new Path[downloadHolders.length];
             for(int i=0;i<paths.length;i++){
@@ -172,7 +176,7 @@ public class DownloadPoolImpl implements DownloadPool{
      * */
     private DownloadHolder getDownloadHolder(DownloadTask downloadTask){
         if(null==downloadTask){
-            logger.warn("[下载任务为空]");
+            logger.warn("下载任务为空");
             return null;
         }
         //新建DownloadHolder对象
@@ -208,7 +212,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 downloadHolder.downloadProgress.filePath = downloadHolder.downloadTask.filePath;
                 Path path = Paths.get(downloadHolder.downloadProgress.filePath);
                 if(Files.exists(path)){
-                    logger.debug("[跳过下载任务]文件已存在,路径:{}",path);
+                    logger.debug("跳过下载任务,文件已存在,路径:{}",path);
                     result = false;
                 }
             }else{
@@ -240,8 +244,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 try {
                     Files.createDirectories(path);
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    logger.warn("[目标目录创建失败]路径:{}",path);
+                    logger.warn("保存路径所在目录创建失败,路径:{}", path, e);
                     return false;
                 }
             }
@@ -251,8 +254,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 try {
                     Files.createDirectories(downloadHolder.file.getParent());
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    logger.warn("[目标文件所在目录创建失败]路径:{}",downloadHolder.file.getParent());
+                    logger.warn("保存路径所在目录创建失败,路径:{}", downloadHolder.file.getParent(), e);
                     return false;
                 }
             }

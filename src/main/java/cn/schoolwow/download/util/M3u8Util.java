@@ -263,7 +263,7 @@ public class M3u8Util {
                 fieldList.add(field);
             }
             tempClass = tempClass.getSuperclass();
-            if (null!=tempClass&&"java.lang.Object".equals(tempClass.getName())) {
+            if (null!=tempClass&&tempClass instanceof Object) {
                 break;
             }
         }
