@@ -12,7 +12,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -27,7 +26,7 @@ public class DownloadPoolImpl implements DownloadPool{
     private DownloadPoolConfig downloadPoolConfig = new DownloadPoolConfigImpl(poolConfig);
 
     /**下载进度列表*/
-    public List<DownloadHolder> downloadHolderList = new CopyOnWriteArrayList<>();
+    public List<DownloadHolder> downloadHolderList = new ArrayList<>();
 
     @Override
     public DownloadPoolConfig downloadPoolConfig() {
@@ -47,7 +46,7 @@ public class DownloadPoolImpl implements DownloadPool{
                 long currentFileSize = 0;
                 int successDownloadCount = 0;
                 for (Path subFile : downloadProgress.subFileList) {
-                    if (null != subFile && Files.exists(subFile)) {
+                    if (null != subFile && subFile.toFile().exists()) {
                         try {
                             currentFileSize += Files.size(subFile);
                         } catch (IOException e) {
@@ -111,10 +110,10 @@ public class DownloadPoolImpl implements DownloadPool{
         for(int i=0;i<downloadTasks.length;i++){
             DownloadHolder downloadHolder = getDownloadHolder(downloadTasks[i]);
             if(null==downloadHolder){
-                logger.warn("下载任务为空,数组下标:"+i);
+                logger.warn("下载任务为空,数组下标:{}", i);
                 continue;
             }
-            logger.trace("添加下载任务到线程池,下标:{}",i);
+            logger.trace("添加下载任务到线程池,下标:{}", i);
             downloadHolder.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
         }
     }
@@ -128,15 +127,15 @@ public class DownloadPoolImpl implements DownloadPool{
         CountDownLatch countDownLatch = new CountDownLatch(downloadTasks.length);
         DownloadHolder[] downloadHolders = new DownloadHolder[downloadTasks.length];
         for(int i=0;i<downloadTasks.length;i++){
-            downloadHolders[i] = getDownloadHolder(downloadTasks[i]);
-            if(null==downloadHolders[i]){
+            DownloadHolder downloadHolder = getDownloadHolder(downloadTasks[i]);
+            if(null==downloadHolder){
                 countDownLatch.countDown();
                 continue;
             }
-            downloadHolders[i].countDownLatch = countDownLatch;
-            poolConfig.threadPoolExecutor.submit(downloadHolders[i].priorityThread);
+            downloadHolder.countDownLatch = countDownLatch;
+            downloadHolder.downloadThreadFuture = poolConfig.threadPoolExecutor.submit(downloadHolder.priorityThread);
         }
-        poolConfig.batchDownloadTaskThreadPoolExecutor.execute(()->{
+        poolConfig.postDownloadTaskThreadPoolExecutor.execute(()->{
             try {
                 if(!countDownLatch.await(2, TimeUnit.HOURS)){
                     logger.warn("文件下载时间超过阈值,停止处理!");

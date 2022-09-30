@@ -20,7 +20,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException, InterruptedException {
         downloadHolder.response.disconnect();
-        int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
+        //最大线程连接个数
         int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         long contentLength = downloadHolder.response.contentLength();
@@ -29,6 +29,9 @@ public class MultiThreadDownloader extends AbstractDownloader{
         long per = contentLength / maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[maxThreadConnection];
         super.downloadThreadFutures = new Future[maxThreadConnection];
+
+        //下载限速
+        int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;
         for (int i = 0; i < maxThreadConnection; i++) {
             final long start = i * per;
             final long end = (i == maxThreadConnection - 1) ? contentLength - 1 : ((i + 1) * per - 1);
@@ -38,7 +41,7 @@ public class MultiThreadDownloader extends AbstractDownloader{
             super.downloadThreadFutures[i] = downloadHolder.poolConfig.downloadThreadPoolExecutor.submit(() -> {
                 Response subResponse = null;
                 try {
-                    if (!Files.exists(subFile)) {
+                    if (!subFile.toFile().exists()) {
                         Files.createFile(subFile);
                     }
                     if (Files.size(subFile) == expectSize) {

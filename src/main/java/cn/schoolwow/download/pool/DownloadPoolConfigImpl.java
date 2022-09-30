@@ -8,7 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 /**线程池配置类*/
 public class DownloadPoolConfigImpl implements DownloadPoolConfig{
@@ -71,7 +71,7 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
             try {
                 Files.createDirectories(file.toPath());
             } catch (IOException e) {
-                throw new RuntimeException("创建全局文件夹失败", e);
+                throw new RuntimeException("创建全局保存文件夹失败", e);
             }
         }
         poolConfig.directoryPath = directoryPath;
@@ -88,7 +88,7 @@ public class DownloadPoolConfigImpl implements DownloadPoolConfig{
     }
 
     @Override
-    public DownloadPoolConfig fileIntegrityChecker(BiFunction<Response, Path,Boolean> fileIntegrityChecker){
+    public DownloadPoolConfig fileIntegrityChecker(BiPredicate<Response, Path> fileIntegrityChecker){
         poolConfig.fileIntegrityChecker = fileIntegrityChecker;
         return this;
     }

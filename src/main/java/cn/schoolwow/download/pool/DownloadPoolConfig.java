@@ -5,7 +5,7 @@ import cn.schoolwow.download.listener.DownloadPoolListener;
 import cn.schoolwow.quickhttp.response.Response;
 
 import java.nio.file.Path;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 public interface DownloadPoolConfig {
     /**
@@ -66,7 +66,7 @@ public interface DownloadPoolConfig {
      * 指定全局文件完整性校验函数
      * @param fileIntegrityChecker 文件完整性校验函数
      * */
-    DownloadPoolConfig fileIntegrityChecker(BiFunction<Response, Path,Boolean> fileIntegrityChecker);
+    DownloadPoolConfig fileIntegrityChecker(BiPredicate<Response, Path> fileIntegrityChecker);
 
     /**
      * 指定线程池事件监听接口

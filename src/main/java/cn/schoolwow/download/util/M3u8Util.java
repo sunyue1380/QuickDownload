@@ -33,17 +33,17 @@ public class M3u8Util {
      * 获取m3u8主播放文件信息
      * @param content m3u8内容
      * */
-    public static MasterPlaylist getMasterPlaylist(String url, String content) throws Exception{
+    public static MasterPlaylist getMasterPlaylist(String url, String content) {
         MasterPlaylist masterPlaylist = new MasterPlaylist();
         BufferedReader br = new BufferedReader(new StringReader(content));
         Iterator<String> iterator = br.lines().iterator();
         //相对路径前缀
-        String relativePath = url.substring(0,url.lastIndexOf("/")+1);
+        String relativePath = url.substring(0,url.lastIndexOf('/')+1);
         while(iterator.hasNext()){
             String line = iterator.next();
             if(line.startsWith("#EXT")){
-                String tag = line.contains(":")?line.substring(0,line.indexOf(":")):line;
-                String attributes = line.contains(":")?line.substring(line.indexOf(":")+1):"";
+                String tag = line.contains(":")?line.substring(0,line.indexOf(':')):line;
+                String attributes = line.contains(":")?line.substring(line.indexOf(':')+1):"";
                 switch(tag){
                     case "#EXT-X-VERSION":{masterPlaylist.VERSION=attributes;}break;
                     case "#EXT-X-MEDIA":{
@@ -77,9 +77,6 @@ public class M3u8Util {
                         START start = getInstance(START.class,attributes);
                         masterPlaylist.start = start;
                     }break;
-                    default:{
-
-                    };
                 }
             }
         }
@@ -88,10 +85,9 @@ public class M3u8Util {
 
     /**
      * 获取m3u8媒体播放列表
-     * @param url m3u8请求url
      * @param content m3u8文件内容
      * */
-    public static MediaPlaylist getMediaPlaylist(String url, String content) {
+    public static MediaPlaylist getMediaPlaylist(String content) {
         MediaPlaylist mediaPlaylist = new MediaPlaylist();
 
         SEGMENT segment = new SEGMENT();
@@ -104,23 +100,23 @@ public class M3u8Util {
         while(iterator.hasNext()){
             String line = iterator.next();
             if(line.startsWith("#EXT")){
-                String tag = line.contains(":")?line.substring(0,line.indexOf(":")):line;
-                String attributes = line.contains(":")?line.substring(line.indexOf(":")+1):"";
+                String tag = line.contains(":")?line.substring(0,line.indexOf(':')):line;
+                String attributes = line.contains(":")?line.substring(line.indexOf(':')+1):"";
                 switch(tag){
                     case "#EXT-X-VERSION":{
                         mediaPlaylist.VERSION=attributes;
                     }break;
                     case "#EXTINF":{
                         EXTINF extinf = new EXTINF();
-                        extinf.duration = attributes.substring(0,attributes.indexOf(","));
-                        extinf.title = attributes.substring(attributes.indexOf(",")+1);
+                        extinf.duration = attributes.substring(0,attributes.indexOf(','));
+                        extinf.title = attributes.substring(attributes.indexOf(',')+1);
                         segment.extinf = extinf;
                     }break;
                     case "#EXT-X-BYTERANGE":{
                         BYTERANGE byterange = new BYTERANGE();
                         if(attributes.contains("@")){
-                            byterange.n = Integer.parseInt(attributes.substring(0,attributes.indexOf("@")));
-                            byterange.o = Integer.parseInt(attributes.substring(attributes.indexOf("@")+1));
+                            byterange.n = Integer.parseInt(attributes.substring(0,attributes.indexOf('@')));
+                            byterange.o = Integer.parseInt(attributes.substring(attributes.indexOf('@')+1));
                         }else{
                             byterange.n = Integer.parseInt(attributes);
                             if(null!=lastByteRange){
@@ -175,7 +171,6 @@ public class M3u8Util {
                         START start = getInstance(START.class,attributes);
                         mediaPlaylist.start = start;
                     }break;
-                    default:{ };break;
                 }
             }else if(line.startsWith("#")){
                 //注释 跳过
@@ -223,9 +218,6 @@ public class M3u8Util {
                     }
                     startIndex = currentIndex+1;
                 }break;
-                default:{
-
-                };
             }
             if(currentIndex==attributes.length()-1&&attributes.charAt(currentIndex)!='\"'){
                 o.put(key,attributes.substring(startIndex));
@@ -267,7 +259,7 @@ public class M3u8Util {
                 fieldList.add(field);
             }
             tempClass = tempClass.getSuperclass();
-            if (null!=tempClass&&tempClass instanceof Object) {
+            if (tempClass instanceof Object) {
                 break;
             }
         }

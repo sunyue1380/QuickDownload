@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 /**下载池配置项*/
 public class PoolConfig {
@@ -39,7 +39,7 @@ public class PoolConfig {
     public String directoryPath;
 
     /**全局文件完整性校验函数*/
-    public BiFunction<Response, Path,Boolean> fileIntegrityChecker;
+    public BiPredicate<Response, Path> fileIntegrityChecker;
 
     /**线程池事件监听接口*/
     public List<DownloadPoolListener> downloadPoolListenerList = new ArrayList<>();
@@ -71,16 +71,16 @@ public class PoolConfig {
     }
 
     /**批量任务下载完成后处理线程池*/
-    public ThreadPoolExecutor batchDownloadTaskThreadPoolExecutor = new ThreadPoolExecutor(
+    public ThreadPoolExecutor postDownloadTaskThreadPoolExecutor = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors()*2,
             Runtime.getRuntime().availableProcessors()*2,
             1,
             TimeUnit.MINUTES,
             new LinkedBlockingQueue<>(),
-            new NamedThreadFactory("quickdownload-batch")
+            new NamedThreadFactory("quickdownload-post")
     );
     {
-        threadPoolExecutor.allowCoreThreadTimeOut(true);
+        postDownloadTaskThreadPoolExecutor.allowCoreThreadTimeOut(true);
     }
 
 }

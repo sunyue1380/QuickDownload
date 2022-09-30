@@ -4,6 +4,7 @@ import cn.schoolwow.download.domain.DownloadHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +20,7 @@ public class SingleThreadDownloader extends AbstractDownloader{
         long contentLength = downloadHolder.response.contentLength();
         logger.info("下载方式为单线程下载,文件大小:{},保存路径:{}", contentLength, downloadHolder.file);
 
-        Path tempFilePath = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath+"/"+System.currentTimeMillis()+"_"+downloadHolder.file.getFileName().toString());
+        Path tempFilePath = Paths.get(downloadHolder.poolConfig.temporaryDirectoryPath + File.separator + System.currentTimeMillis()+"_"+downloadHolder.file.getFileName().toString());
         downloadHolder.downloadProgress.subFileList = new Path[1];
         downloadHolder.downloadProgress.subFileList[0] = tempFilePath;
         int maxDownloadSpeed = downloadHolder.downloadTask.maxDownloadSpeed>0?downloadHolder.downloadTask.maxDownloadSpeed:downloadHolder.poolConfig.maxDownloadSpeed;

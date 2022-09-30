@@ -9,9 +9,9 @@ import java.io.IOException;
 
 /**下载器枚举类*/
 public enum DownloaderEnum {
-    SingleThread(new SingleThreadDownloader()),
-    MultiThread(new MultiThreadDownloader()),
-    M3u8(new M3u8Downloader());
+    SINGLE_THREAD(new SingleThreadDownloader()),
+    MULTI_THREAD(new MultiThreadDownloader()),
+    M3U8(new M3u8Downloader());
 
     private Downloader downloader;
 

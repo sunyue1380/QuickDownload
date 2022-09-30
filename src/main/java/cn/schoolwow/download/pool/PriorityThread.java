@@ -47,6 +47,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             download();
         }catch (InterruptedException e){
             logger.debug("用户停止了下载任务,下载任务保存路径:{}", downloadHolder.file);
+            Thread.currentThread().interrupt();
         }catch (IOException e){
             downloadHolder.downloadProgress.state = "下载失败";
             executeListener("downloadFail", e);
@@ -56,11 +57,14 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             downloadHolder.response.disconnect();
             downloadHolder.response = null;
 
-            //从下载进度表移除
-            logger.trace("将当前任务从下载进度表中移除");
-            synchronized (downloadHolderList){
-                downloadHolderList.remove(downloadHolder);
+            if(!Thread.currentThread().isInterrupted()){
+                //从下载进度表移除
+                logger.trace("将当前任务从下载进度表中移除");
+                synchronized (downloadHolderList){
+                    downloadHolderList.remove(downloadHolder);
+                }
             }
+
             executeListener("downloadFinished", null);
             //批量下载任务线程同步
             if(null!=downloadHolder.countDownLatch){
@@ -90,7 +94,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
     }
 
     /**检查临时文件目录*/
-    private void checkTemporaryDirectory() throws IOException {
+    private void checkTemporaryDirectory() {
         File file = new File(poolConfig.temporaryDirectoryPath);
         logger.trace("检查临时文件目录,路径:{}", file);
         if(!file.exists()){
@@ -106,7 +110,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
      * @return 是否应该继续下载
      * */
     private boolean executeListener(String event, Exception e){
-        logger.trace("执行监听事件:" + event);
+        logger.trace("执行监听事件:{}", event);
         switch (event){
             case "afterExecute":{
                 for(DownloadTaskListener downloadTaskListener:downloadHolder.downloadTask.downloadTaskListenerList){
@@ -173,7 +177,7 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
         }
         String fileName = downloadHolder.response.filename();
         if(null==fileName){
-            fileName = downloadHolder.response.url().substring(downloadHolder.response.url().lastIndexOf("/")+1);
+            fileName = downloadHolder.response.url().substring(downloadHolder.response.url().lastIndexOf('/')+1);
         }
         if(fileName.contains("?")){
             fileName = fileName.substring(0,fileName.indexOf("?"));
@@ -192,30 +196,27 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
             logger.warn("文件完整性校验,文件不存在,路径:{}",downloadHolder.file);
             return false;
         }
-        if(!downloadHolder.downloadTask.m3u8){
-            //m3u8格式不检查大小
-            if(null==downloadHolder.response.contentEncoding()){
-                //开启了gzip压缩的情况下不检查
-                long expectContentLength = downloadHolder.response.contentLength();
-                long actualFileSize = downloadHolder.file.toFile().length();
-                if(expectContentLength>0&&expectContentLength!=actualFileSize){
-                    logger.warn("文件大小不匹配,预期大小:{},实际大小:{}",expectContentLength,actualFileSize);
-                    //如果实际文件大小大于预期文件大小,则删除临时文件后重新下载
-                    if(actualFileSize>expectContentLength){
-                        logger.trace("文件实际大小大于预期大小,删除临时文件后重新下载");
-                        for(Path subFile:downloadHolder.downloadProgress.subFileList){
-                            Files.deleteIfExists(subFile);
-                        }
+        //m3u8格式和gzip压缩情况下不检查大小
+        if(!downloadHolder.downloadTask.m3u8&&null==downloadHolder.response.contentEncoding()){
+            long expectContentLength = downloadHolder.response.contentLength();
+            long actualFileSize = downloadHolder.file.toFile().length();
+            if(expectContentLength>0&&expectContentLength!=actualFileSize){
+                logger.warn("文件大小不匹配,预期大小:{},实际大小:{}",expectContentLength,actualFileSize);
+                //如果实际文件大小大于预期文件大小,则删除临时文件后重新下载
+                if(actualFileSize>expectContentLength){
+                    logger.trace("文件实际大小大于预期大小,删除临时文件后重新下载");
+                    for(Path subFile:downloadHolder.downloadProgress.subFileList){
+                        Files.deleteIfExists(subFile);
                     }
-                    return false;
                 }
+                return false;
             }
         }
         if(null!=downloadHolder.downloadTask.fileIntegrityChecker&&!downloadHolder.downloadTask.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
             logger.warn("下载任务文件完整性校验函数未通过");
             return false;
         }
-        if(null!=poolConfig.fileIntegrityChecker&&!poolConfig.fileIntegrityChecker.apply(downloadHolder.response,downloadHolder.file)){
+        if(null!=poolConfig.fileIntegrityChecker&&!poolConfig.fileIntegrityChecker.test(downloadHolder.response,downloadHolder.file)){
             logger.warn("下载池文件完整性校验函数未通过");
             return false;
         }
@@ -281,11 +282,11 @@ public class PriorityThread implements Runnable, Comparable<PriorityThread>{
         ){
             downloadHolder.downloadTask.m3u8 = true;
             downloadHolder.downloadProgress.m3u8 = true;
-            DownloaderEnum.M3u8.download(downloadHolder);
+            DownloaderEnum.M3U8.download(downloadHolder);
         }else if(downloadHolder.response.contentLength()==-1||downloadHolder.downloadTask.singleThread||downloadHolder.poolConfig.singleThread||!downloadHolder.response.acceptRanges()){
-            DownloaderEnum.SingleThread.download(downloadHolder);
+            DownloaderEnum.SINGLE_THREAD.download(downloadHolder);
         }else{
-            DownloaderEnum.MultiThread.download(downloadHolder);
+            DownloaderEnum.MULTI_THREAD.download(downloadHolder);
         }
         checkFileIntegrity(downloadHolder);
     }

@@ -24,24 +24,24 @@ public class M3u8Downloader extends AbstractDownloader{
     @Override
     public void download(DownloadHolder downloadHolder) throws IOException, InterruptedException {
         downloadHolder.downloadProgress.m3u8 = true;
-        int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
+        String url = downloadHolder.response.url();
         if(!M3u8Type.MediaPlayList.equals(M3u8Util.getM3u8Type(downloadHolder.response.body()))){
-            logger.warn("m3u8地址不是媒体播放列表,地址:{}", downloadHolder.response.url());
+            logger.warn("m3u8地址不是媒体播放列表,地址:{}", url);
             return;
         }
 
-        String url = downloadHolder.response.url();
         MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(url,downloadHolder.response.body());
         logger.info("下载方式为m3u8,总分段个数:{},保存路径:{}", mediaPlaylist.segmentList, downloadHolder.file);
         //补充相对路径
         {
-            String relativePath = url.substring(0,url.lastIndexOf("/")+1);
+            String relativePath = url.substring(0,url.lastIndexOf('/')+1);
             for(SEGMENT segment2:mediaPlaylist.segmentList){
                 if(!segment2.URI.startsWith("http")){
                     segment2.URI = relativePath + segment2.URI;
                 }
             }
         }
+        int maxThreadConnection = downloadHolder.poolConfig.maxThreadConnection;
         CountDownLatch countDownLatch = new CountDownLatch(maxThreadConnection);
         int per = mediaPlaylist.segmentList.size()/maxThreadConnection;
         downloadHolder.downloadProgress.subFileList = new Path[mediaPlaylist.segmentList.size()];
@@ -57,7 +57,7 @@ public class M3u8Downloader extends AbstractDownloader{
             super.downloadThreadFutures[i] = downloadHolder.poolConfig.downloadThreadPoolExecutor.submit(()->{
                 for(int j=start;j<=end;j++){
                     Path subFilePath = downloadHolder.downloadProgress.subFileList[j];
-                    if(Files.exists(subFilePath)){
+                    if(subFilePath.toFile().exists()){
                         logger.debug("分段文件已存在,路径:{}", subFilePath);
                         continue;
                     }
