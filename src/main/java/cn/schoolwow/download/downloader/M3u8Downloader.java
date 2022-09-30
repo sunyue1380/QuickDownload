@@ -30,7 +30,7 @@ public class M3u8Downloader extends AbstractDownloader{
             return;
         }
 
-        MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(url,downloadHolder.response.body());
+        MediaPlaylist mediaPlaylist = M3u8Util.getMediaPlaylist(downloadHolder.response.body());
         logger.info("下载方式为m3u8,总分段个数:{},保存路径:{}", mediaPlaylist.segmentList, downloadHolder.file);
         //补充相对路径
         {
