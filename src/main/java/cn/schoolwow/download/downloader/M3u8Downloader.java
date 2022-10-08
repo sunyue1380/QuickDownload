@@ -1,10 +1,10 @@
 package cn.schoolwow.download.downloader;
 
 import cn.schoolwow.download.domain.DownloadHolder;
+import cn.schoolwow.download.domain.m3u8.M3u8Type;
+import cn.schoolwow.download.domain.m3u8.MediaPlaylist;
+import cn.schoolwow.download.domain.m3u8.tag.SEGMENT;
 import cn.schoolwow.download.util.M3u8Util;
-import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
-import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
-import cn.schoolwow.quickhttp.domain.m3u8.tag.SEGMENT;
 import cn.schoolwow.quickhttp.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,9 +1,9 @@
 package cn.schoolwow.download.util;
 
-import cn.schoolwow.quickhttp.domain.m3u8.M3u8Type;
-import cn.schoolwow.quickhttp.domain.m3u8.MasterPlaylist;
-import cn.schoolwow.quickhttp.domain.m3u8.MediaPlaylist;
-import cn.schoolwow.quickhttp.domain.m3u8.tag.*;
+import cn.schoolwow.download.domain.m3u8.M3u8Type;
+import cn.schoolwow.download.domain.m3u8.MasterPlaylist;
+import cn.schoolwow.download.domain.m3u8.MediaPlaylist;
+import cn.schoolwow.download.domain.m3u8.tag.*;
 import com.alibaba.fastjson.JSONObject;
 
 import java.io.BufferedReader;

@@ -203,9 +203,15 @@ public class DownloadPoolImpl implements DownloadPool{
         synchronized (downloadHolderList){
             //判断下载列表是否已存在该记录
             if(null!=downloadHolder.downloadTask.filePath){
-                if(downloadHolderList.contains(downloadHolder)){
+                for(DownloadHolder downloadHolder1:downloadHolderList){
+                    if(null!=downloadHolder1.downloadTask.filePath&&downloadHolder1.downloadTask.filePath.equalsIgnoreCase(downloadHolder.downloadTask.filePath)){
+                        addResult = false;
+                    }else if(null!=downloadHolder1.file&&downloadHolder1.file.toFile().equals(new File(downloadHolder.downloadTask.filePath))){
+                        addResult = false;
+                    }
+                }
+                if(!addResult){
                     logger.debug("下载任务已存在于下载进度列表中,文件路径:{}", downloadHolder.downloadTask.filePath);
-                    addResult = false;
                 }
             }else{
                 //如果是指定文件夹,则在进度对象中设置显示路径
