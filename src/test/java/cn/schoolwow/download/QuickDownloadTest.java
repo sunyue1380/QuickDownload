@@ -90,6 +90,15 @@ public class QuickDownloadTest {
             throw new IllegalArgumentException("获取下载记录为空!");
         }
         for(DownloadRecord downloadRecord:downloadRecordList){
+            System.out.println("下载文件:"+downloadRecord.filePath());
+            downloadRecord.pauseDownload();
+        }
+        Thread.sleep(1000);
+        for(DownloadRecord downloadRecord:downloadRecordList){
+            downloadRecord.resumeDownload();
+        }
+        Thread.sleep(10);
+        for(DownloadRecord downloadRecord:downloadRecordList){
             downloadRecord.deleteDownloadRecord();
         }
         Thread.sleep(3000);

@@ -25,7 +25,7 @@ public class DownloadRecord {
 
     /**下载路径*/
     public String filePath(){
-        return downloadHolder.file.toString();
+        return null==downloadHolder.file?downloadHolder.downloadTask.filePath:downloadHolder.file.toString();
     }
 
     /**暂停下载*/
